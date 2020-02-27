@@ -231,7 +231,7 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Final Engine.ico" />
+    <Image Include="FinalEngine.ico" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="settings.manifest" />

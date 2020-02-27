@@ -187,11 +187,6 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Final Engine.ico">
-      <Filter>Assets</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
     <Manifest Include="settings.manifest">
       <Filter>Assets</Filter>
     </Manifest>
@@ -205,5 +200,10 @@
     <Text Include="Shaders\color.hlsl">
       <Filter>Shaders</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="FinalEngine.ico">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>
