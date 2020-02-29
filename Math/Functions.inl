@@ -10,6 +10,7 @@
 //
 // Author:  James Stanard 
 //
+// Modified by Jianyao Zheng
 
 #pragma once
 
@@ -85,6 +86,15 @@ namespace Math
     INLINE float Max( float a, float b ) { return a > b ? a : b; }
     INLINE float Min( float a, float b ) { return a < b ? a : b; }
     INLINE float Clamp( float v, float a, float b ) { return Min(Max(v, a), b); }
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	INLINE int32_t Max(int32_t a, int32_t b) { return a > b ? a : b; }
+	INLINE int32_t Min(int32_t a, int32_t b) { return a < b ? a : b; }
+	INLINE int32_t Clamp(int32_t v, int32_t a, int32_t b) { return Min(Max(v, a), b); }
+	INLINE uint32_t Max(uint32_t a, uint32_t b) { return a > b ? a : b; }
+	INLINE uint32_t Min(uint32_t a, uint32_t b) { return a < b ? a : b; }
+	INLINE uint32_t Clamp(uint32_t v, uint32_t a, uint32_t b) { return Min(Max(v, a), b); }
+	///////////////////////////////////////////////////////////////////////////////////////////
 
     INLINE Scalar Length( Vector3 v ) { return Scalar(XMVector3Length(v)); }
     INLINE Scalar LengthSquare( Vector3 v ) { return Scalar(XMVector3LengthSq(v)); }

@@ -143,10 +143,10 @@ void AppGUI::NewFrame()
 
 void AppGUI::DrawGUI()
 {
-	m_appData->BlockAreas.resize(3);
+	m_appData->BlockAreas.resize(2);
 	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-	if (m_bShowDemo)
-		ImGui::ShowDemoWindow(&m_bShowDemo);
+	// if (m_bShowDemo)
+		// ImGui::ShowDemoWindow(&m_bShowDemo);
 
 	// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
 	{
@@ -154,8 +154,9 @@ void AppGUI::DrawGUI()
 			ImGui::End();											// Early out if the window is collapsed, as an optimization.
 		else
 		{
-			ImGui::Checkbox("Demo Window", &m_bShowDemo);			// Edit bools storing our window open/close state
-
+			SetBlockAreas(0);
+			
+			// ImGui::Checkbox("Demo Window", &m_bShowDemo);			// Edit bools storing our window open/close state
 			if (ImGui::Checkbox("Enable4xMsaa", &m_appData->bEnable4xMsaa))
 				m_appData->bOptionsChanged = true;
 
@@ -179,9 +180,25 @@ void AppGUI::DrawGUI()
 			};
 			ImGui::Combo(u8"投影类型", &(int)m_appData->ECameraProjType, cameraProjTypes, IM_ARRAYSIZE(cameraProjTypes));
 
+			const char* visualizationColorModes[] =
+			{
+				NameOf(VCM_ColorWhite),
+				NameOf(VCM_ColorRGB)
+			};
+			ImGui::Combo(u8"颜色模式", &(int)m_appData->EVisualizationColorMode, visualizationColorModes, IM_ARRAYSIZE(visualizationColorModes));
+
 			ImGui::Checkbox(u8"显示网格", &m_appData->bShowGrid);
 			if (m_appData->bShowGrid)
 			{
+				ImGui::SetNextItemWidth(70);
+				if (ImGui::DragFloat(u8"长度", &m_appData->GridWidth, 1.0f, 20.0f, std::numeric_limits<float>::max()))
+					m_appData->bGridDirdy = true;
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(70);
+				if (ImGui::DragInt(u8"单元", &(int)m_appData->GridUnit, 20.0f, 20, 2000))
+					m_appData->bGridDirdy = true;
+				// ImGui::Checkbox(u8"更新", &m_appData->bGridDirdy);
+
 				static Vector3 trans = { 0.0f };
 				static Vector3 rotat = { 0.0f };
 				static Vector3 scale = { 1.0f };
@@ -193,24 +210,68 @@ void AppGUI::DrawGUI()
 				// m_appData->LocalToWorld = Matrix4(AffineTransform(Quaternion(rotat.GetX(), rotat.GetY(), rotat.GetZ()), trans)*AffineTransform::MakeScale(scale));
 				m_appData->LocalToWorld = Matrix4(AffineTransform(trans).Rotation(rotat*(XM_PI/180.0f)).Scale(scale));			
 			}
+	
+			ImGui::ColorEdit3("clear color", (float*)&m_appData->ClearColor); // Edit 3 floats representing a color	
 
+			if (ImGui::CollapsingHeader(u8"可视化对象选择"))
 			{
-				ImVec2 current_pos = ImGui::GetWindowPos();
-				ImVec2 current_size = ImGui::GetWindowSize();
+				int* va_ptr = &(int)m_appData->EVisualizationAttribute;
 
-				auto blockArea = std::make_unique<BlockArea>();
-				blockArea->StartPos = XMINT2((int32)current_pos.x, (int32)current_pos.y);
-				blockArea->BlockSize = XMINT2((int32)current_size.x, (int32)current_size.y);
+#define GUI_SetAttribute(x) if (ImGui::RadioButton(NameOf(x), va_ptr, (int)x)) m_appData->bVisualizationAttributeDirty = true;
 
-				m_appData->BlockAreas[0] = std::move(blockArea);
+				if (ImGui::TreeNode("VisualizationAttribute"))
+				{
+					GUI_SetAttribute(VA_NumVertices);
+					GUI_SetAttribute(VA_NumTriangles);
+					GUI_SetAttribute(VA_NumInstances);
+					GUI_SetAttribute(VA_NumLODs);
+					GUI_SetAttribute(VA_NumMaterials);
+					GUI_SetAttribute(VA_NumTextures);
+
+					if (ImGui::TreeNode("Material"))
+					{
+						if (ImGui::TreeNode("Texture"))
+						{
+							GUI_SetAttribute(VA_CurrentKB);
+							ImGui::TreePop();
+						}
+
+						GUI_SetAttribute(VA_Stats_Base_Pass_Shader_Instructions);
+						GUI_SetAttribute(VA_Stats_Base_Pass_Shader_With_Surface_Lightmap);
+						GUI_SetAttribute(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap);
+						GUI_SetAttribute(VA_Stats_Base_Pass_Vertex_Shader);
+						GUI_SetAttribute(VA_Stats_Texture_Samplers);
+						GUI_SetAttribute(VA_Stats_User_Interpolators);
+						GUI_SetAttribute(VA_Stats_Texture_Lookups_VS);
+						GUI_SetAttribute(VA_Stats_Texture_Lookups_PS);
+						GUI_SetAttribute(VA_Stats_Virtual_Texture_Lookups);
+						GUI_SetAttribute(VA_Material_Two_Sided);
+						GUI_SetAttribute(VA_Material_Cast_Ray_Traced_Shadows);
+						GUI_SetAttribute(VA_Translucency_Screen_Space_Reflections);
+						GUI_SetAttribute(VA_Translucency_Contact_Shadows);
+						GUI_SetAttribute(VA_Translucency_Directional_Lighting_Intensity);
+						GUI_SetAttribute(VA_Translucency_Apply_Fogging);
+						GUI_SetAttribute(VA_Translucency_Compute_Fog_Per_Pixel);
+						GUI_SetAttribute(VA_Translucency_Output_Velocity);
+						GUI_SetAttribute(VA_Translucency_Render_After_DOF);
+						GUI_SetAttribute(VA_Translucency_Responsive_AA);
+						GUI_SetAttribute(VA_Translucency_Mobile_Separate_Translucency);
+						GUI_SetAttribute(VA_Translucency_Disable_Depth_Test);
+						GUI_SetAttribute(VA_Translucency_Write_Only_Alpha);
+						GUI_SetAttribute(VA_Translucency_Allow_Custom_Depth_Writes);
+						GUI_SetAttribute(VA_Mobile_Use_Full_Precision);
+						GUI_SetAttribute(VA_Mobile_Use_Lightmap_Directionality);
+						GUI_SetAttribute(VA_Forward_Shading_High_Quality_Reflections);
+						GUI_SetAttribute(VA_Forward_Shading_Planar_Reflections);
+						
+						ImGui::TreePop();
+					}
+					ImGui::TreePop();
+				}
 			}
 
-			ImGui::ColorEdit3("clear color", (float*)&m_appData->ClearColor); // Edit 3 floats representing a color
-		
-			{
-				ImGui::DragFloat("Speed", &m_appData->DragSpeed, 1.0f, 1.0f, 100.0f);
-				ImGui::DragFloat("Overflow", &m_appData->Overflow, m_appData->DragSpeed, 1.0f, std::numeric_limits<float>::max());
-			}
+			ImGui::DragFloat("Speed", &m_appData->DragSpeed, 1.0f, 1.0f, 100.0f);
+			ImGui::DragFloat("Overflow", &m_appData->Overflow, m_appData->DragSpeed, 1.0f, std::numeric_limits<float>::max());
 
 			if (ImGui::Button(u8"导入UE4场景数据"))
 			{
@@ -240,6 +301,13 @@ void AppGUI::DrawGUI()
 				}
 			}
 
+			ImGui::SameLine();
+			if (ImGui::Button(u8"清空"))
+				m_appData->bClearFScene = true;
+
+			ImGui::SameLine();
+			ImGui::Text(u8"默认LOD0");
+
 			static std::string hint;
 			if (m_importerLock)
 			{
@@ -251,13 +319,7 @@ void AppGUI::DrawGUI()
 
 			if (ImGui::BeginPopupModal(u8"导入器", NULL, ImGuiWindowFlags_AlwaysAutoResize))
 			{
-				{
-					auto blockArea = std::make_unique<BlockArea>();
-					blockArea->StartPos = XMINT2(0, 0);
-					blockArea->BlockSize = m_window.Size;
-
-					m_appData->BlockAreas[1] = std::move(blockArea);
-				}
+				SetBlockAreas(1, true);
 
 				ImGui::Text(hint.c_str());
 				ImGui::Separator();
@@ -268,27 +330,33 @@ void AppGUI::DrawGUI()
 			
 				ImGui::EndPopup();
 			}
-			
-			{
-				if (m_importerLock)
-				{
-// 					for (int lod = 0; lod < m_importer->GetLODCount(); ++lod)
-// 					{
-// 						for (auto& row : m_importer->GetFSceneData(lod)->StaticMeshesTable)
-// 						{
-// 							if (ImGui::TreeNode(StringManager::to_string(row.Name).c_str()))
-// 							{
-// 								ImGui::TreePop();
-// 							}
-// 						}
-// 					}
-					
-					
-				}
-			}
 
 			ImGui::Text(u8"Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::End();
 		}		
 	}
+}
+
+void AppGUI::SetBlockAreas(int index, bool bFullScreen)
+{
+	if (index >= m_appData->BlockAreas.size())
+		return;
+
+	auto blockArea = std::make_unique<BlockArea>();
+	if (bFullScreen)
+	{
+		auto blockArea = std::make_unique<BlockArea>();
+		blockArea->StartPos = XMINT2(0, 0);
+		blockArea->BlockSize = m_window.Size;
+	}
+	else
+	{
+		ImVec2 current_pos = ImGui::GetWindowPos();
+		ImVec2 current_size = ImGui::GetWindowSize();
+	
+		blockArea->StartPos = XMINT2((int32)current_pos.x, (int32)current_pos.y);
+		blockArea->BlockSize = XMINT2((int32)current_size.x, (int32)current_size.y);		
+	}
+
+	m_appData->BlockAreas[0] = std::move(blockArea);
 }

@@ -87,6 +87,25 @@ void AppEntry::Update(const StepTimer& timer)
 		}
 	}
 
+	// Grid Update.
+	if (m_appGui->GetAppData()->bGridDirdy)
+	{
+		m_appGui->GetAppData()->bGridDirdy = false;		
+		if (m_appGui->GetAppData()->GridUnit >= 2u || m_appGui->GetAppData()->GridUnit <= 2000u)
+		{
+			m_deviceResources->ExecuteCommandLists([&]()
+			{
+				MeshData<ColorVertex> gridMesh = GeometryCreator::CreateLineGrid(
+					m_appGui->GetAppData()->GridWidth,
+					m_appGui->GetAppData()->GridWidth,
+					m_appGui->GetAppData()->GridUnit,
+					m_appGui->GetAppData()->GridUnit);
+				m_deviceResources->WaitForGpu();
+				m_allRitems[0]->CreateCommonGeometry<ColorVertex, uint32>(m_deviceResources.get(), m_allRitems[0]->Name, gridMesh.Vertices, gridMesh.Indices32);
+			});
+		}	
+	}
+
 	// FSceneDataImporter.
 	if (m_appGui->CheckImporterLock())
 	{
@@ -96,16 +115,27 @@ void AppEntry::Update(const StepTimer& timer)
 
 			if (m_appGui->GetImporterData()->GetFSceneData(0))
 			{
-				if (!m_appGui->GetImporterData()->GetFSceneData(0)->StaticMeshesTable.empty())
+				if (!m_appGui->GetImporterData()->GetFSceneData(0)->StaticMeshesTable.empty() ||
+					!m_appGui->GetImporterData()->GetFSceneData(0)->SkeletalMeshesTable.empty())
 				{
+					m_allFSceneDataSets.push_back(*m_appGui->GetImporterData()->GetFSceneData(0));
 					m_deviceResources->ExecuteCommandLists([&]()
 					{
 						BuildFSceneRenderItems(m_appGui->GetImporterData()->GetFSceneData(0));
 					});
 
+					// Above already Call to Wait for Gpu.
 					m_frameResource->ResizeBuffer<ObjectConstant>((UINT)m_allRitems.size());
-					m_frameResource->ResizeBuffer<StructureBuffer>((UINT)m_perBoxCPUSBuffer.size());
-
+					UINT structBufferCount = 0;
+					for (auto& fSceneDataSet : m_allFSceneDataSets)
+					{
+						for (auto& staticMesh : fSceneDataSet.StaticMeshesTable)
+						{
+							structBufferCount += (UINT)staticMesh.BoundsIndices.size();
+						}
+						structBufferCount += (UINT)fSceneDataSet.SkeletalMeshesTable.size();
+					}				
+					m_frameResource->ResizeBuffer<StructureBuffer>(structBufferCount);
 					// CBuffer Changed.
 					for (auto& ri : m_allRitems)
 						ri->bObjectDataChanged = true;
@@ -114,6 +144,22 @@ void AppEntry::Update(const StepTimer& timer)
 		}
 	}
 
+	// Clear FScene.
+	if (m_appGui->GetAppData()->bClearFScene)
+	{
+		m_appGui->GetAppData()->bClearFScene = false;
+		
+		m_deviceResources->WaitForGpu();
+		RenderItem::ObjectCount = 1;
+		m_allRitems.resize(1);
+		m_renderItemLayer[RenderLayer::Opaque].clear();
+		m_perFSceneCPUSBuffer.clear();
+		
+		m_frameResource->ResizeBuffer<ObjectConstant>((UINT)m_allRitems.size());
+		m_frameResource->ResizeBuffer<StructureBuffer>((UINT)m_perFSceneCPUSBuffer.size());
+	}
+
+	// Update Camera & Frame Resource.
 	{
 		// Set Camera View Type.
 #define CV_SetView(x) case x:m_camera.SetViewType(x);break;
@@ -140,6 +186,7 @@ void AppEntry::Update(const StepTimer& timer)
 		}
 
 		m_camera.UpdateViewMatrix();
+
 		// PerPass Constant Buffer.
 		PassConstant passConstant;
 		passConstant.ViewProj = Matrix4(m_camera.GetViewProj());
@@ -148,15 +195,10 @@ void AppEntry::Update(const StepTimer& timer)
 
 		// PerObject Constant Buffer.
 		m_allRitems.front()->World = m_appGui->GetAppData()->LocalToWorld;
-		// m_allRitems.front()->bObjectDataChanged = true;
-
-		// First Import.
-		// if (m_allRitems.size() > 1)
-		//	m_allRitems[1]->bObjectDataChanged = true;
 
 		for (auto& ri : m_allRitems)
 		{
-			ri->bObjectDataChanged = true; // Test.
+			ri->bObjectDataChanged = true; // update every frame.
 			if (ri->bObjectDataChanged)
 			{
 				ri->bObjectDataChanged = false;
@@ -164,16 +206,124 @@ void AppEntry::Update(const StepTimer& timer)
 				ObjectConstant objectConstant;
 				objectConstant.World = ri->World;
 				objectConstant.Overflow = m_appGui->GetAppData()->Overflow;
-				objectConstant.PerBoxSBufferOffset = ri->PerBoxSBufferOffset;
+				objectConstant.PerFSceneSBufferOffset = ri->PerFSceneSBufferOffset;
 
 				m_frameResource->CopyData<ObjectConstant>(ri->ObjectCBufferIndex, objectConstant);
 			}			
 		}
 
-		for (int i = 0; i < m_perBoxCPUSBuffer.size(); ++i)
+		// Structure Buffer.
+		if (!m_allFSceneDataSets.empty())
 		{
-			m_frameResource->CopyData<StructureBuffer>(i, m_perBoxCPUSBuffer[i]);
-		}
+			if (m_appGui->GetAppData()->bVisualizationAttributeDirty)
+			{
+				m_appGui->GetAppData()->bVisualizationAttributeDirty = false;
+				m_perFSceneCPUSBuffer.clear();
+				for (auto& fSceneDataSet : m_allFSceneDataSets)
+				{
+					for (auto& staticMesh : fSceneDataSet.StaticMeshesTable)
+					{
+						for (int i = 0; i < staticMesh.BoundsIndices.size(); ++i)
+						{
+							// Fill Per FScene CPU Structure Buffer.
+							float colorX = 0.0f;
+							switch (m_appGui->GetAppData()->EVisualizationAttribute)
+							{
+							case VA_NumVertices:
+								colorX = (float)staticMesh.NumVertices;
+								break;
+							case VA_NumTriangles:
+								colorX = (float)staticMesh.NumTriangles;
+								break;
+							case VA_NumInstances:
+								colorX = (float)staticMesh.NumInstances;
+								break;
+							case VA_NumLODs:
+								colorX = (float)staticMesh.NumLODs;
+								break;
+							case VA_NumMaterials:
+								colorX = (float)(staticMesh.UsedMaterialsIndices.size() + staticMesh.UsedMaterialIntancesIndices.size());
+								break;
+							case VA_NumTextures:
+							{
+								std::map<int32, void*> temp;
+								for (auto& matID : staticMesh.UsedMaterialsIndices)
+								{
+									for (auto& texID : fSceneDataSet.MaterialsTable[matID].UsedTexturesIndices)
+									{
+										temp.emplace(fSceneDataSet.TexturesTable[texID].UniqueId, nullptr);
+									}
+								}
+								for (auto& matID : staticMesh.UsedMaterialIntancesIndices)
+								{
+									for (auto& texID : fSceneDataSet.MaterialInstancesTable[matID].UsedTexturesIndices)
+									{
+										temp.emplace(fSceneDataSet.TexturesTable[texID].UniqueId, nullptr);
+									}
+								}
+								colorX = (float)temp.size();
+							}
+							break;
+							default:
+								break;
+							}
+							StructureBuffer sBuffer;
+							sBuffer.Color = Vector4(colorX, colorX, colorX, 1.0f);
+							m_perFSceneCPUSBuffer.push_back(sBuffer);
+						}						
+					}
+					for (auto& skeletalMesh : fSceneDataSet.SkeletalMeshesTable)
+					{
+						// Fill Per FScene CPU Structure Buffer.
+						float colorX = 0.0f;
+						switch (m_appGui->GetAppData()->EVisualizationAttribute)
+						{
+						case VA_NumVertices:
+							colorX = (float)skeletalMesh.NumVertices;
+							break;
+						case VA_NumTriangles:
+							colorX = (float)skeletalMesh.NumTriangles;
+							break;
+						case VA_NumLODs:
+							colorX = (float)skeletalMesh.NumLODs;
+							break;
+						case VA_NumMaterials:
+							colorX = (float)(skeletalMesh.UsedMaterialsIndices.size() + skeletalMesh.UsedMaterialIntancesIndices.size());
+							break;
+						case VA_NumTextures:
+						{
+							std::map<int32, void*> temp;
+							for (auto& matID : skeletalMesh.UsedMaterialsIndices)
+							{
+								for (auto& texID : fSceneDataSet.MaterialsTable[matID].UsedTexturesIndices)
+								{
+									temp.emplace(fSceneDataSet.TexturesTable[texID].UniqueId, nullptr);
+								}
+							}
+							for (auto& matID : skeletalMesh.UsedMaterialIntancesIndices)
+							{
+								for (auto& texID : fSceneDataSet.MaterialInstancesTable[matID].UsedTexturesIndices)
+								{
+									temp.emplace(fSceneDataSet.TexturesTable[texID].UniqueId, nullptr);
+								}
+							}
+							colorX = (float)temp.size();
+						}
+						break;
+						default:
+							break;
+						}
+						StructureBuffer sBuffer;
+						sBuffer.Color = Vector4(colorX, colorX, colorX, 1.0f);
+						m_perFSceneCPUSBuffer.push_back(sBuffer);
+					}
+				}			
+				for (int i = 0; i < m_perFSceneCPUSBuffer.size(); ++i)
+				{
+					m_frameResource->CopyData<StructureBuffer>(i, m_perFSceneCPUSBuffer[i]);
+				}
+			}
+		}		
 	}
 
     PIXEndEvent();
@@ -214,15 +364,25 @@ void AppEntry::Render()
 
 		if (m_appGui->GetAppData()->bShowGrid)
 		{
-			commandList->SetPipelineState(m_PSOs["line"].Get());
+			commandList->SetPipelineState(m_PSOs["Line"].Get());
 			DrawRenderItem(m_renderItemLayer[RenderLayer::Line]);
 		}	
 
 		// Set Structure Buffer.
-		if (!m_perBoxCPUSBuffer.empty())
+		if (!m_perFSceneCPUSBuffer.empty())
 		{
 			commandList->SetGraphicsRootShaderResourceView(2, m_frameResource->GetBufferGPUVirtualAddress<StructureBuffer>());
-			commandList->SetPipelineState(m_PSOs["triangle"].Get());
+			switch (m_appGui->GetAppData()->EVisualizationColorMode)
+			{
+			case VCM_ColorWhite:
+				commandList->SetPipelineState(m_PSOs["Box"].Get());
+				break;
+			case VCM_ColorRGB:
+				commandList->SetPipelineState(m_PSOs["BoxRGB"].Get());
+				break;
+			default:
+				break;
+			}
 			DrawRenderItem(m_renderItemLayer[RenderLayer::Opaque]);
 		}				
 		
@@ -387,6 +547,23 @@ void AppEntry::OnKeyboardInput(const StepTimer& timer)
 		m_camera.Strafe(10.0f*dt);
 }
 
+// GUI Messages
+bool AppEntry::CheckInBlockAreas(int x, int y)
+{
+	for (auto& blockArea : m_appGui->GetAppData()->BlockAreas)
+	{
+		if (blockArea == nullptr)
+			continue;
+
+		if (x >= blockArea->StartPos.x &&
+			y >= blockArea->StartPos.y &&
+			x <= (blockArea->StartPos.x + blockArea->BlockSize.x) &&
+			y <= (blockArea->StartPos.y + blockArea->BlockSize.y))
+			return true;
+	}
+	return false;
+}
+
 LRESULT AppEntry::AppMessageProcessor(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	return m_appGui->GUIMessageProcessor(hWnd, msg, wParam, lParam);
@@ -421,17 +598,17 @@ void AppEntry::CreateDeviceDependentResources()
 	auto commandList = m_deviceResources->GetCommandList();
 
 	Window window = { m_window, XMINT2(m_width, m_height) };
-	m_appGui = std::make_unique<AppGUI>(window, device, commandList, m_deviceResources->GetBackBufferCount());
-	
+	m_appGui = std::make_unique<AppGUI>(window, device, commandList, m_deviceResources->GetBackBufferCount());	
+
     // TODO: Initialize device dependent objects here (independent of window size).
-	m_deviceResources->ExecuteCommandLists([&]() 
+	m_deviceResources->ExecuteCommandLists([&]()
 	{
 		// Create Srv Desc for GUI And ...
 		BuildDescriptorHeaps();
 		BuildConstantBuffers();
 		BuildRootSignature();
 		BuildShadersAndInputLayout();
-		BuildDefaultGeometry();
+		BuildLineGridGeometry();
 		BuildPSO();	
 	});
 	m_frameResource = std::make_unique<FrameResource>(m_deviceResources->GetD3DDevice(), 1, (UINT)m_allRitems.size());
@@ -482,6 +659,8 @@ void AppEntry::BuildShadersAndInputLayout()
 	m_shaderByteCode["BoxVS"] = AppUtil::CompileShader(L"Shaders\\color.hlsl", nullptr, "VS", "vs_5_1");
 	m_shaderByteCode["BoxPS"] = AppUtil::CompileShader(L"Shaders\\color.hlsl", nullptr, "PS", "ps_5_1");
 
+	m_shaderByteCode["BoxRGBVS"] = AppUtil::CompileShader(L"Shaders\\color.hlsl", nullptr, "RGBVS", "vs_5_1");
+
 	m_shaderByteCode["LineVS"] = AppUtil::CompileShader(L"Shaders\\color.hlsl", nullptr, "LineVS", "vs_5_1");
 
 	m_inputLayout =
@@ -491,12 +670,16 @@ void AppEntry::BuildShadersAndInputLayout()
 	};
 }
 
-void AppEntry::BuildDefaultGeometry()
+void AppEntry::BuildLineGridGeometry()
 {
 	auto gridRItem = std::make_unique<RenderItem>();
 	gridRItem->Name = "grid";
 	gridRItem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-	MeshData<ColorVertex> gridMesh = GeometryCreator::CreateLineGrid(30.0f, 30.0f, 60, 60);
+	MeshData<ColorVertex> gridMesh = GeometryCreator::CreateLineGrid(
+		m_appGui->GetAppData()->GridWidth,
+		m_appGui->GetAppData()->GridWidth,
+		m_appGui->GetAppData()->GridUnit,
+		m_appGui->GetAppData()->GridUnit);
 	gridRItem->CreateCommonGeometry<ColorVertex, uint16>(m_deviceResources.get(), gridRItem->Name, gridMesh.Vertices, gridMesh.GetIndices16());
 
 	m_renderItemLayer[RenderLayer::Line].push_back(gridRItem.get());
@@ -506,8 +689,9 @@ void AppEntry::BuildDefaultGeometry()
 void AppEntry::BuildFSceneRenderItems(const FSceneDataSet* currentFSceneDataSet)
 {
 	MeshData<ColorVertex> boxMesh = GeometryCreator::CreateDefaultBox();
-	MeshData<ColorVertex> FSceneMesh;
-	int boxCount = 0; // bounds to box.
+	MeshData<ColorVertex> fSceneMesh;
+	int perFSceneBoxCount = 0; // bounds to box.
+
 	for (auto& staticMesh : currentFSceneDataSet->StaticMeshesTable)
 	{
 		for (auto& boundsIndex : staticMesh.BoundsIndices)
@@ -519,28 +703,40 @@ void AppEntry::BuildFSceneRenderItems(const FSceneDataSet* currentFSceneDataSet)
 			{
 				vertex.Pos = Vector3(corners[i++]);
 				vertex.Pos.RightHandToLeft();
-				FSceneMesh.Vertices.push_back(vertex);
+				fSceneMesh.Vertices.push_back(vertex);
 			}
 			for (auto& index : boxMesh.Indices32)
 			{
-				FSceneMesh.Indices32.push_back(index + boxCount * 8);
+				fSceneMesh.Indices32.push_back(index + perFSceneBoxCount * 8);
 			}
-			boxCount++;
-
-			// Fill Per Box CPU Structure Buffer.
-			float colorX = (float)staticMesh.NumVertices;
-			StructureBuffer sBuffer;
-			sBuffer.Color = Vector4(colorX, colorX, colorX, 1.0f);
-	 		m_perBoxCPUSBuffer.push_back(sBuffer);
+			perFSceneBoxCount++;			
 		}		
+	}
+
+	for (auto& skeletalMesh : currentFSceneDataSet->SkeletalMeshesTable)
+	{
+		BoxSphereBounds bounds = currentFSceneDataSet->BoundsTable[skeletalMesh.BoundsIndex];
+		XMFLOAT3 corners[8]; int i = 0;
+		bounds.BoxBounds.GetCorners(corners);
+		for (auto& vertex : boxMesh.Vertices)
+		{
+			vertex.Pos = Vector3(corners[i++]);
+			vertex.Pos.RightHandToLeft();
+			fSceneMesh.Vertices.push_back(vertex);
+		}
+		for (auto& index : boxMesh.Indices32)
+		{
+			fSceneMesh.Indices32.push_back(index + perFSceneBoxCount * 8);
+		}
+		perFSceneBoxCount++;		
 	}
 
 	auto boxRItem = std::make_unique<RenderItem>();
 	boxRItem->Name = "box" + std::to_string(boxRItem->ObjectCBufferIndex);
 	boxRItem->World = Matrix4(AffineTransform::MakeScale(0.001f));
 	boxRItem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	boxRItem->PerBoxSBufferOffset = (int)m_perBoxCPUSBuffer.size() - boxCount;
-	boxRItem->CreateCommonGeometry<ColorVertex, uint16>(m_deviceResources.get(), boxRItem->Name, FSceneMesh.Vertices, FSceneMesh.GetIndices16());
+	boxRItem->PerFSceneSBufferOffset = (int)m_perFSceneCPUSBuffer.size();
+	boxRItem->CreateCommonGeometry<ColorVertex, uint16>(m_deviceResources.get(), boxRItem->Name, fSceneMesh.Vertices, fSceneMesh.GetIndices16());
 
 	m_renderItemLayer[RenderLayer::Opaque].push_back(boxRItem.get());
 	m_allRitems.push_back(std::move(boxRItem));
@@ -586,7 +782,7 @@ void AppEntry::BuildPSO()
 	psoDesc0.SampleDesc.Quality = enable4xMsaa ? (m_deviceResources->GetNum4MSQualityLevels() - 1) : 0;
 	psoDesc0.DSVFormat = m_depthStencilFormat;
 
-	m_deviceResources->CreateGraphicsPipelineState(&psoDesc0, &m_PSOs["triangle"]);
+	m_deviceResources->CreateGraphicsPipelineState(&psoDesc0, &m_PSOs["Box"]);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc1 = psoDesc0;
 	psoDesc1.VS =
@@ -597,27 +793,18 @@ void AppEntry::BuildPSO()
 	psoDesc1.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc1.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
-	m_deviceResources->CreateGraphicsPipelineState(&psoDesc1, &m_PSOs["line"]);
+	m_deviceResources->CreateGraphicsPipelineState(&psoDesc1, &m_PSOs["Line"]);
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc2 = psoDesc0;
+	psoDesc2.VS = 
+	{
+		reinterpret_cast<BYTE*>(m_shaderByteCode["BoxRGBVS"]->GetBufferPointer()),
+		m_shaderByteCode["BoxRGBVS"]->GetBufferSize()
+	};
+	m_deviceResources->CreateGraphicsPipelineState(&psoDesc2, &m_PSOs["BoxRGB"]);
 }
 
 #pragma endregion
-
-// GUI Messages
-bool AppEntry::CheckInBlockAreas(int x, int y)
-{
-	for (auto& blockArea : m_appGui->GetAppData()->BlockAreas)
-	{
-		if (blockArea == nullptr)
-			continue;
-
-		if (x >= blockArea->StartPos.x &&
-			y >= blockArea->StartPos.y &&
-			x <= (blockArea->StartPos.x + blockArea->BlockSize.x) &&
-			y <= (blockArea->StartPos.y + blockArea->BlockSize.y))
-			return true;
-	}
-	return false;
-}
 
 #pragma region Interface IDeviceNotify
 // IDeviceNotify

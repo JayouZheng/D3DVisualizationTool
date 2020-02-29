@@ -78,7 +78,7 @@ private:
 	void BuildConstantBuffers();
 	void BuildRootSignature();
 	void BuildShadersAndInputLayout();
-	void BuildDefaultGeometry();
+	void BuildLineGridGeometry();
 	void BuildFSceneRenderItems(const FSceneDataSet* currentFSceneDataSet);
 	void BuildPSO();
 
@@ -130,5 +130,6 @@ private:
 	bool   m_bMouseDownInBlockArea = false;
 
 	// Others.
-	std::vector<StructureBuffer> m_perBoxCPUSBuffer;
+	std::vector<StructureBuffer> m_perFSceneCPUSBuffer;
+	std::vector<FSceneDataSet> m_allFSceneDataSets;
 };

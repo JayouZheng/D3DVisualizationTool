@@ -20,9 +20,60 @@ namespace DX
 		XMINT2 BlockSize;
 	};
 
+	enum VisualizationAttribute
+	{
+		// Mesh.
+		VA_NumVertices,
+		VA_NumTriangles,
+		VA_NumInstances,
+		VA_NumLODs,
+		VA_NumMaterials, // Include MatIns.
+		VA_NumTextures,
+
+		// Material.
+		VA_Stats_Base_Pass_Shader_Instructions,
+		VA_Stats_Base_Pass_Shader_With_Surface_Lightmap,
+		VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap,
+		VA_Stats_Base_Pass_Vertex_Shader,
+		VA_Stats_Texture_Samplers,
+		VA_Stats_User_Interpolators,
+		VA_Stats_Texture_Lookups_VS,
+		VA_Stats_Texture_Lookups_PS,
+		VA_Stats_Virtual_Texture_Lookups,
+		VA_Material_Two_Sided,
+		VA_Material_Cast_Ray_Traced_Shadows,
+		VA_Translucency_Screen_Space_Reflections,
+		VA_Translucency_Contact_Shadows,
+		VA_Translucency_Directional_Lighting_Intensity,
+		VA_Translucency_Apply_Fogging,
+		VA_Translucency_Compute_Fog_Per_Pixel,
+		VA_Translucency_Output_Velocity,
+		VA_Translucency_Render_After_DOF,
+		VA_Translucency_Responsive_AA,
+		VA_Translucency_Mobile_Separate_Translucency,
+		VA_Translucency_Disable_Depth_Test,
+		VA_Translucency_Write_Only_Alpha,
+		VA_Translucency_Allow_Custom_Depth_Writes,
+		VA_Mobile_Use_Full_Precision,
+		VA_Mobile_Use_Lightmap_Directionality,
+		VA_Forward_Shading_High_Quality_Reflections,
+		VA_Forward_Shading_Planar_Reflections,
+
+		// Texture.
+		VA_CurrentKB
+	};
+
+	enum VisualizationColorMode
+	{
+		VCM_ColorWhite,
+		VCM_ColorRGB
+	};
+
 	struct AppData
 	{
 		// User Data.
+		float GridWidth = 60.0f;
+		uint32 GridUnit = 60;
 		Vector4 ClearColor = { 0.608f, 0.689f, 0.730f, 1.0f };
 		Matrix4 LocalToWorld = Matrix4(EIdentityTag::kIdentity);
 		bool bEnable4xMsaa = false;
@@ -31,10 +82,15 @@ namespace DX
 		float DragSpeed = 1.0f;
 		float Overflow = 1000.0f;
 		bool bShowGrid = true;
+		VisualizationAttribute EVisualizationAttribute = VA_NumVertices;
+		bool bClearFScene = false;
+		bool bVisualizationAttributeDirty = true;
+		VisualizationColorMode EVisualizationColorMode = VCM_ColorWhite;
 
 		// App Data.
 		std::vector<std::unique_ptr<BlockArea>> BlockAreas;
 		bool bOptionsChanged = false;
+		bool bGridDirdy = false;
 	};
 
 	struct BoxSphereBounds

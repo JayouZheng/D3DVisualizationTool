@@ -46,6 +46,8 @@ private:
 	void NewFrame();
 	void DrawGUI();
 
+	void SetBlockAreas(int index, bool bFullScreen = false);
+
 	// Note: Put struct member first, structure was padded due to alignment specifier...
 
 	std::unique_ptr<AppData> m_appData = nullptr;

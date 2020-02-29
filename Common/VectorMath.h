@@ -47,8 +47,8 @@
 //
 // Peace,
 //   James
-// Disagree,
-//   jianyao Zheng
+//
+// Modified by Jianyao Zheng
 
 #pragma once
 

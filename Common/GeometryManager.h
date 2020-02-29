@@ -121,8 +121,8 @@ namespace DX
 			D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 			///////////////////////////////////////////////////////
-			// Custom Data Field. / Per Box Structure Buffer Offset.
-			int PerBoxSBufferOffset = 0;
+			// Custom Data Field. / Per FScene Structure Buffer Offset.
+			int PerFSceneSBufferOffset = 0;
 			///////////////////////////////////////////////////////
 
 			// NOTE: NO SubmeshGeometry.

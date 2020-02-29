@@ -11,6 +11,9 @@ int32 RenderItem::ObjectCount = 0;
 
 MeshData<ColorVertex> GeometryCreator::CreateLineGrid(float width, float depth, uint32 m, uint32 n)
 {
+	m = Math::Clamp(m, 2u, 2000u);
+	n = Math::Clamp(n, 2u, 2000u);
+
 	MeshData<ColorVertex> meshData;
 
 	uint32 vertexCount = (m + 1) * (n + 1);

@@ -202,7 +202,7 @@ namespace DX
 		ID3D12CommandList* cmdsLists[] = { m_commandList.Get() };
 		m_commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
-		// Wait until initialization is complete.
+		// Wait until all previous GPU work is complete.
 		WaitForGpu();
 	}
 

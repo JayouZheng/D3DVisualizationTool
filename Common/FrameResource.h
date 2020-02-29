@@ -23,7 +23,7 @@ namespace DX
 	{
 		Matrix4 World = Matrix4(EIdentityTag::kIdentity);
 		float Overflow = 1000.0f;
-		int PerBoxSBufferOffset = 0;
+		int PerFSceneSBufferOffset = 0;
 	};
 
 	struct ObjectConstantArray // Limited to 64KB.
@@ -63,6 +63,8 @@ namespace DX
 		template<typename TConstantType>
 		void ResizeBuffer(UINT count)
 		{
+			if (count < 1)
+				return;
 			if (std::is_same<PassConstant, TConstantType>::value) m_passCBuffer = std::make_unique<UploadBuffer<PassConstant>>(m_d3dDevice, count, true);
 			else if (std::is_same<ObjectConstant, TConstantType>::value) m_objectCBuffer = std::make_unique<UploadBuffer<ObjectConstant>>(m_d3dDevice, count, true);
 			else if (std::is_same<ObjectConstantArray, TConstantType>::value) m_objectArrayCBuffer = std::make_unique<UploadBuffer<ObjectConstantArray>>(m_d3dDevice, count, true);
