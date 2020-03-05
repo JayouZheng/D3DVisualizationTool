@@ -24,13 +24,9 @@ void CS(int3 groupID : SV_GroupID)
     maxPixel.Color = 0.0f;
     for (int i = 0; i < gOffscreenWidth; ++i)
     {
-        pos.x = i;
-        maxPixel.Color.r = max(maxPixel.Color.r, gOffscreenOutput[pos].r);
-        maxPixel.Color.g = max(maxPixel.Color.g, gOffscreenOutput[pos].g);
-        maxPixel.Color.b = max(maxPixel.Color.b, gOffscreenOutput[pos].b);
-        maxPixel.Color.a = max(maxPixel.Color.a, gOffscreenOutput[pos].a);
+        pos.x = i;      
+        maxPixel.Color = max(maxPixel.Color, gOffscreenOutput[pos]);
+
     }
-    // Wait for all threads to finish.
-    GroupMemoryBarrierWithGroupSync();
     gOutput[groupID.x] = maxPixel;
 }

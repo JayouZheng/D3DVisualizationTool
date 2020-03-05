@@ -52,7 +52,8 @@ float4 PS(VertexOut pin) : SV_Target
 float4 RGBPS(VertexOut pin) : SV_Target
 {
     float4 color = gOffscreenOutput.SampleLevel(gsamPointClamp, pin.TexC, 0.0f);
-    clip(color - 0.01f);
+    // Clip small value (also reject the background pixels).
+    clip(color - 0.001f);
     // Just pass vertex color into the pixel shader.
     float smooth = saturate(color.x / gOverflow);
     // trans [0, 1] to [R, G, B].

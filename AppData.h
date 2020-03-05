@@ -92,6 +92,7 @@ namespace DX
 		float CameraFarZ = 2000.0f;
 		float FSceneScale = 0.001f;
 		Vector4 MaxPixel = Math::Vector4(Math::EZeroTag::kZero);
+		bool bEnableCalcMax = true;
 
 		// App Data.
 		std::vector<std::unique_ptr<BlockArea>> BlockAreas;

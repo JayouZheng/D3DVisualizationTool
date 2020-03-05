@@ -165,6 +165,7 @@ void AppEntry::Update(const StepTimer& timer)
 	}
 
 	// Find Max Pixel On the CPU side.
+	if (m_appGui->GetAppData()->bEnableCalcMax)
 	{		
 		Math::Vector4* mappedData = nullptr;
 		ThrowIfFailed(m_readBackBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData)));
@@ -540,6 +541,7 @@ void AppEntry::Render()
 			commandList->SetGraphicsRootDescriptorTable(3, srvDescGPUHandle);
 
 			// Find Max Pixel On the GPU side.
+			if (m_appGui->GetAppData()->bEnableCalcMax)
 			{
 				commandList->SetComputeRootSignature(m_ROOTSIGs["Main"].Get());
 				commandList->SetPipelineState(m_PSOs["ComputeMax"].Get());

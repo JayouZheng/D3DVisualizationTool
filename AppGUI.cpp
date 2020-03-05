@@ -219,6 +219,7 @@ void AppGUI::DrawGUI()
 			ImGui::ColorEdit3("clear color", (float*)&m_appData->ClearColor); // Edit 3 floats representing a color	
 			ImGui::DragFloat(u8"输入场景比例", &m_appData->FSceneScale, 0.00001f, 0.0001f, 1000.0f, "%.5f");
 
+			ImGui::Checkbox(u8"允许实时计算最大值", &m_appData->bEnableCalcMax);
 			if (ImGui::Button(u8"设置"))
 				m_appData->Overflow = m_appData->MaxPixel.GetX();
 			ImGui::SameLine();
