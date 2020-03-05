@@ -12,12 +12,12 @@ StructuredBuffer<PerBoxData> gPerBoxData : register(t0);
 cbuffer PerPassCBuffer : register(b0)
 {
     float4x4 gViewProj;
+    float gOverflow;
 };
 
 cbuffer PerObjectCBuffer : register(b1)
 {
-    float4x4 gWorld;
-    float gOverflow;
+    float4x4 gWorld;  
     int gPerFSceneSBufferOffset;
 };
 
@@ -34,7 +34,7 @@ struct VertexOut
     float4 Color : COLOR;
 };
 
-VertexOut LineVS(VertexIn vin, uint vertexID : SV_VertexID)
+VertexOut VS(VertexIn vin, uint vertexID : SV_VertexID)
 {
 	VertexOut vout;
     
@@ -49,7 +49,7 @@ VertexOut LineVS(VertexIn vin, uint vertexID : SV_VertexID)
     return vout;
 }
 
-VertexOut VS(VertexIn vin, uint vertexID : SV_VertexID)
+VertexOut BoxVS(VertexIn vin, uint vertexID : SV_VertexID)
 {
     VertexOut vout;
     
@@ -58,28 +58,7 @@ VertexOut VS(VertexIn vin, uint vertexID : SV_VertexID)
 	// Transform to homogeneous clip space.
     vout.PosH = mul(gViewProj, vout.PosW);
 	
-	// Just pass vertex color into the pixel shader.
-    vout.Color = saturate(gPerBoxData[gPerFSceneSBufferOffset + vertexID / 8].Color / gOverflow);
-    
-    return vout;
-}
-
-VertexOut RGBVS(VertexIn vin, uint vertexID : SV_VertexID)
-{
-    VertexOut vout;
-    
-    vout.PosW = mul(gWorld, vin.PosL);
-	
-	// Transform to homogeneous clip space.
-    vout.PosH = mul(gViewProj, vout.PosW);
-	
-	// Just pass vertex color into the pixel shader.
-    float smooth = saturate(gPerBoxData[gPerFSceneSBufferOffset + vertexID / 8].Color.x / gOverflow);
-    // trans [0, 1] to [R, G, B].
-    vout.Color.r = lerp(0.0f, 1.0f, saturate(smooth * 2 - 1.0f));
-    vout.Color.g = abs(abs(smooth * 2 - 1.0f) - 1.0f);
-    vout.Color.b = lerp(1.0f, 0.0f, saturate(smooth * 2));
-    vout.Color.a = 1.0f;
+    vout.Color = gPerBoxData[gPerFSceneSBufferOffset + vertexID / 8].Color;
     
     return vout;
 }
@@ -88,5 +67,3 @@ float4 PS(VertexOut pin) : SV_Target
 {
     return pin.Color;
 }
-
-

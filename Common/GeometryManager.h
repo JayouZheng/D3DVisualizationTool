@@ -93,6 +93,7 @@ namespace DX
 			AlphaTested,
 			ScreenQuad,
 			Line,
+			FScene,
 			Selected,
 			Count
 		};

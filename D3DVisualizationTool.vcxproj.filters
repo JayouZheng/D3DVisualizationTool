@@ -8,15 +8,6 @@
       <UniqueIdentifier>e2ea63a9-fa08-49a5-9aba-5406f890414a</UniqueIdentifier>
       <Extensions>ico;cur;bmp;dds;dlg;fbx;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="imgui">
-      <UniqueIdentifier>{2801f77a-1a82-4603-bdcd-750062c5e4a0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="imgui\impl">
-      <UniqueIdentifier>{df9b35e8-6a73-45f2-b617-bf2c21a134a2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="imgui\nothings_stb">
-      <UniqueIdentifier>{b77b7feb-b380-49f8-857d-8e1136e4a87e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Math">
       <UniqueIdentifier>{fbd455d3-8d07-49b1-83a6-1c42cf4f0730}</UniqueIdentifier>
     </Filter>
@@ -25,6 +16,15 @@
     </Filter>
     <Filter Include="UnrealEngine">
       <UniqueIdentifier>{e63b969c-7b22-4996-8610-4f75dde5245e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{2801f77a-1a82-4603-bdcd-750062c5e4a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui\impl">
+      <UniqueIdentifier>{df9b35e8-6a73-45f2-b617-bf2c21a134a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui\nothings_stb">
+      <UniqueIdentifier>{b77b7feb-b380-49f8-857d-8e1136e4a87e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -197,13 +197,19 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Shaders\color.hlsl">
-      <Filter>Shaders</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="FinalEngine.ico">
       <Filter>Assets</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Shaders\common.hlsl">
+      <Filter>Shaders</Filter>
+    </Text>
+    <Text Include="Shaders\computemax.hlsl">
+      <Filter>Shaders</Filter>
+    </Text>
+    <Text Include="Shaders\fullscreenquad.hlsl">
+      <Filter>Shaders</Filter>
+    </Text>
   </ItemGroup>
 </Project>

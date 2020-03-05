@@ -15,6 +15,7 @@ namespace DX
         virtual void OnDeviceRestored() = 0;
 
 		virtual void RenderGUI() = 0;
+		virtual void PostProcessing() = 0;
 		virtual void OnOptionsChanged() = 0;
     };
 
@@ -25,26 +26,39 @@ namespace DX
 		const UINT8 Stencil = 0;
 	}
 
+	enum EStaticSampler
+	{
+		SS_PointWrap,
+		SS_PointClamp,
+		SS_LinearWrap,
+		SS_LinearClamp,
+		SS_AnisotropicWrap,
+		SS_AnisotropicClamp
+	};
+
     // Controls all the DirectX device resources.
     class DeviceResources
     {
     public:
 
-        static const unsigned int c_AllowTearing    = 0x1;
-        static const unsigned int c_EnableHDR       = 0x2;
-		static const unsigned int c_Enable4xMsaa	= 0x4;
+        static const unsigned int c_AllowTearing			= 0x1;
+        static const unsigned int c_EnableHDR				= 0x2;
+		static const unsigned int c_Enable4xMsaa			= 0x4;
+		static const unsigned int c_EnableOffscreenRender	= 0x8;
 		
         DeviceResources(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM,
                         DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT,
                         UINT backBufferCount = 2,
-						UINT additionalRTVDescriptors = 0,
-						UINT additionalDSVDescriptors = 0,
                         D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0,
                         unsigned int flags = 0) noexcept(false);
         ~DeviceResources();
 
         void CreateDeviceResources();
         void CreateWindowSizeDependentResources();
+		void CreateOffscreenRenderTargets(
+			UINT numRenderTargets, 
+			const DXGI_FORMAT* pRenderTargetFormats, 
+			const D3D12_RESOURCE_STATES* pDefaultStates);
         void SetWindow(HWND window, int width, int height);
         bool WindowSizeChanged(int width, int height);
         void HandleDeviceLost();
@@ -57,6 +71,7 @@ namespace DX
         void WaitForGpu() noexcept;
 
 		void RenderGUI();
+		void PostProcessing();
 		void OnOptionsChanged();
 
 		template<typename TLambda>
@@ -64,6 +79,7 @@ namespace DX
 
 		// Set DeviceResources options.
 		void SetOptions(unsigned int options) { m_options = options; OnOptionsChanged(); }
+		void SetActiveOffscreenRTIndex(UINT index) { m_activeOffscreenRTIndex = index; }
 
 		// Some Convenient Functions.
 		void CreateRootSignature(D3D12_ROOT_SIGNATURE_DESC* pRootSigDesc, ID3D12RootSignature** ppRootSignature);
@@ -72,7 +88,13 @@ namespace DX
 			D3D12_DESCRIPTOR_HEAP_TYPE heapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
 			D3D12_DESCRIPTOR_HEAP_FLAGS heapFlags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
 			UINT heapNodeMask = 0);
+		void CreateTex2DShaderResourceView(
+			ID3D12Resource *pResource,
+			D3D12_CPU_DESCRIPTOR_HANDLE destDescriptor,
+			DXGI_FORMAT format,
+			UINT mipLevels = 1);
 		void CreateGraphicsPipelineState(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pDesc, ID3D12PipelineState** ppPipelineState);
+		void CreateComputePipelineState(D3D12_COMPUTE_PIPELINE_STATE_DESC* pDesc, ID3D12PipelineState** ppPipelineState);
 		void CreateDefaultBuffer(const void* pData, UINT64 byteSize, ID3D12Resource** ppDefaultBuffer, ID3D12Resource** ppUploadBuffer);
 
         // Device Accessors.
@@ -96,8 +118,14 @@ namespace DX
         UINT                        GetCurrentFrameIndex() const    { return m_backBufferIndex; }
         UINT                        GetBackBufferCount() const      { return m_backBufferCount; }
         DXGI_COLOR_SPACE_TYPE       GetColorSpace() const           { return m_colorSpace; }
-        unsigned int                GetDeviceOptions() const        { return m_options; }
+        UINT						GetDeviceOptions() const        { return m_options; }
 		UINT						GetNum4MSQualityLevels() const  { return m_num4MSQualityLevels; }
+
+		UINT			GetCbvSrvUavDescriptorSize()		 const	{ return m_cbvSrvUavDescriptorSize; }
+		ID3D12Resource* GetOffscreenRenderTarget(UINT index) const	{ return m_offscreenRenderTargets[Math::Clamp(index, 0u, MAX_OFFSCREEN_RTV_COUNT - 1u)].Get(); }
+
+		// Texture Samplers.
+		const CD3DX12_STATIC_SAMPLER_DESC GetStaticSamplers(const EStaticSampler& type);
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const
         {
@@ -109,6 +137,17 @@ namespace DX
 			return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), 
 				m_backBufferCount, m_rtvDescriptorSize);
 		}
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetOffscreenRenderTargetView(UINT index) const
+		{
+			return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+				m_backBufferCount + Math::Clamp(index, 0u, MAX_OFFSCREEN_RTV_COUNT - 1u) + 1, m_rtvDescriptorSize); // +1 Msaa RTV.
+		}
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetActiveRenderTargetView() const
+		{
+			return (m_options & c_Enable4xMsaa) ? GetMsaaRenderTargetView() :
+				(m_options & c_EnableOffscreenRender) ? GetOffscreenRenderTargetView(m_activeOffscreenRTIndex) :
+				GetRenderTargetView();
+		}
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const
         {
             return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
@@ -118,6 +157,10 @@ namespace DX
 			return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), 
 				m_dsvDescriptorSize);
 		}
+		CD3DX12_CPU_DESCRIPTOR_HANDLE GetActiveDepthStencilView() const
+		{
+			return (m_options & c_Enable4xMsaa) ? GetMsaaDepthStencilView() : GetDepthStencilView();
+		}
 
     private:
 
@@ -125,7 +168,8 @@ namespace DX
         void GetAdapter(IDXGIAdapter1** ppAdapter);
         void UpdateColorSpace();
 
-        static const size_t MAX_BACK_BUFFER_COUNT = 3;
+        static const size_t			MAX_BACK_BUFFER_COUNT = 3;
+		static const unsigned int	MAX_OFFSCREEN_RTV_COUNT = 8;
 
         UINT                                                m_backBufferIndex;
 
@@ -144,6 +188,9 @@ namespace DX
 		// MSAA resources.
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_msaaRenderTarget;
 		Microsoft::WRL::ComPtr<ID3D12Resource>				m_msaaDepthStencil;
+
+		// Offscreen Render Targets.
+		Microsoft::WRL::ComPtr<ID3D12Resource>				m_offscreenRenderTargets[MAX_OFFSCREEN_RTV_COUNT];
 
         // Presentation fence objects.
         Microsoft::WRL::ComPtr<ID3D12Fence>                 m_fence;
@@ -186,6 +233,7 @@ namespace DX
 		// Others.
 		unsigned int										m_sampleCount;
 		unsigned int										m_targetSampleCount = 4;
+		UINT												m_activeOffscreenRTIndex = 0;
     };
 
 	template<typename TLambda>

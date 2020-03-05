@@ -5,7 +5,6 @@
 #pragma once
 
 #include "Common/DeviceResources.h"
-#include "Common/TimerManager.h"
 #include "AppGUI.h"
 #include "Common/GeometryManager.h"
 #include "Common/FrameResource.h"
@@ -35,6 +34,7 @@ public:
     virtual void OnDeviceRestored() override;
 
 	virtual void RenderGUI() override;
+	virtual void PostProcessing() override;
 	virtual void OnOptionsChanged() override;
 
     // Messages
@@ -48,6 +48,7 @@ public:
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);
 	void OnMouseMove(WPARAM btnState, int x, int y);
+	// x, y is not the coordinate of the cursor but pointer.
 	void OnMouseWheel(int d, WPARAM btnState, int x, int y);
 
 	void OnKeyDown(WPARAM keyState);
@@ -69,6 +70,7 @@ private:
     void Render();
 
 	void DrawRenderItem(std::vector<RenderItem*>& renderItemLayer);
+	void DrawFullscreenQuad(ID3D12GraphicsCommandList* commandList);
 
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
@@ -88,9 +90,13 @@ private:
     // Device resources.
     std::unique_ptr<DeviceResources>			   m_deviceResources = nullptr;
 
+	// ComputeMax CS related Resources.
+	ComPtr<ID3D12Resource> m_outputBuffer = nullptr;
+	ComPtr<ID3D12Resource> m_readBackBuffer = nullptr;
+
 	// DescHeap.
 	ComPtr<ID3D12DescriptorHeap> m_srvCbvDescHeap = nullptr;
-	ComPtr<ID3D12RootSignature>  m_rootSignature  = nullptr;
+	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> m_ROOTSIGs;
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> m_PSOs;
 
 	// Shader ByteCode.
@@ -128,6 +134,7 @@ private:
 
 	XMINT2 m_lastMousePos;
 	bool   m_bMouseDownInBlockArea = false;
+	bool   m_bMousePosInBlockArea = false;
 
 	// Others.
 	std::vector<StructureBuffer> m_perFSceneCPUSBuffer;

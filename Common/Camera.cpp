@@ -93,6 +93,12 @@ float Camera::GetFovX() const
 	return float(2.0f*atan(halfWidth / m_nearZ));
 }
 
+void Camera::SetFarZ(float farZ)
+{
+	m_farZ = farZ;
+	UpdateProj();
+}
+
 float Camera::GetNearWindowWidth() const
 {
 	return m_aspectRatio * m_nearWindowHeight;
@@ -113,23 +119,23 @@ float Camera::GetFarWindowHeight() const
 	return m_farWindowHeight;
 }
 
-CameraViewType Camera::GetViewType() const
+ECameraViewType Camera::GetViewType() const
 {
 	return m_viewType;
 }
 
-void Camera::SetViewType(const CameraViewType& type)
+void Camera::SetViewType(const ECameraViewType& type)
 {
 	m_viewType = type;
 	m_viewDirty = true;
 }
 
-CameraProjType Camera::GetProjType() const
+ECameraProjType Camera::GetProjType() const
 {
 	return m_projType;
 }
 
-void Camera::SetProjType(const CameraProjType& type)
+void Camera::SetProjType(const ECameraProjType& type)
 {
 	m_projType = type;
 	UpdateProj();
@@ -335,8 +341,8 @@ void Camera::Move2D(float up, float right)
 {
 	if (m_viewType == CV_FirstPersonView || m_viewType == CV_FocusPointView)
 		return;
-	m_offsetUp += up;
-	m_offsetRight += right;
+	m_offsetUp += up * m_move2DSpeed;
+	m_offsetRight -= right * m_move2DSpeed;
 	m_viewDirty = true;
 }
 
@@ -348,7 +354,7 @@ void Camera::ProcessMoving(float dx, float dy)
 	RotateY(dx);
 	Pitch(dy);
 
-	Move2D(5.0f*dy, -5.0f*dx);
+	Move2D(dy, dx);
 }
 
 void Camera::UpdateViewMatrix()

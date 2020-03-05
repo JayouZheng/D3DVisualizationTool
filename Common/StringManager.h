@@ -34,6 +34,8 @@ namespace DX
 
 			static std::vector<std::wstring> WGetBetween(const std::wstring& wstr, const std::wstring& boundary);
 
+			static std::vector<std::wstring> WGetBetween(const std::wstring& wstr, const std::wstring& bound1, const std::wstring& bound2);
+
 			static std::vector<std::string> RemoveBetween(std::string& str, const std::string& boundary);
 
 			static std::vector<std::wstring> WRemoveBetween(std::wstring& wstr, const std::wstring& boundary);

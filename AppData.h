@@ -20,7 +20,7 @@ namespace DX
 		XMINT2 BlockSize;
 	};
 
-	enum VisualizationAttribute
+	enum EVisualizationAttribute
 	{
 		// Mesh.
 		VA_NumVertices,
@@ -36,7 +36,10 @@ namespace DX
 		VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap,
 		VA_Stats_Base_Pass_Vertex_Shader,
 		VA_Stats_Texture_Samplers,
-		VA_Stats_User_Interpolators,
+		VA_Stats_User_Interpolators_Scalars,
+		VA_Stats_User_Interpolators_Vectors,
+		VA_Stats_User_Interpolators_TexCoords,
+		VA_Stats_User_Interpolators_Custom,
 		VA_Stats_Texture_Lookups_VS,
 		VA_Stats_Texture_Lookups_PS,
 		VA_Stats_Virtual_Texture_Lookups,
@@ -63,7 +66,7 @@ namespace DX
 		VA_CurrentKB
 	};
 
-	enum VisualizationColorMode
+	enum EVisualizationColorMode
 	{
 		VCM_ColorWhite,
 		VCM_ColorRGB
@@ -77,20 +80,24 @@ namespace DX
 		Vector4 ClearColor = { 0.608f, 0.689f, 0.730f, 1.0f };
 		Matrix4 LocalToWorld = Matrix4(EIdentityTag::kIdentity);
 		bool bEnable4xMsaa = false;
-		CameraViewType ECameraViewType = CV_FirstPersonView;
-		CameraProjType ECameraProjType = CP_PerspectiveProj;
+		ECameraViewType _ECameraViewType = CV_FocusPointView;
+		ECameraProjType _ECameraProjType = CP_PerspectiveProj;
 		float DragSpeed = 1.0f;
 		float Overflow = 1000.0f;
 		bool bShowGrid = true;
-		VisualizationAttribute EVisualizationAttribute = VA_NumVertices;
+		EVisualizationAttribute _EVisualizationAttribute = VA_NumVertices;
 		bool bClearFScene = false;
 		bool bVisualizationAttributeDirty = true;
-		VisualizationColorMode EVisualizationColorMode = VCM_ColorWhite;
+		EVisualizationColorMode _EVisualizationColorMode = VCM_ColorWhite;
+		float CameraFarZ = 2000.0f;
+		float FSceneScale = 0.001f;
+		Vector4 MaxPixel = Math::Vector4(Math::EZeroTag::kZero);
 
 		// App Data.
 		std::vector<std::unique_ptr<BlockArea>> BlockAreas;
 		bool bOptionsChanged = false;
 		bool bGridDirdy = false;
+		bool bCameraFarZDirty = false;
 	};
 
 	struct BoxSphereBounds

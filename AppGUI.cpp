@@ -157,8 +157,9 @@ void AppGUI::DrawGUI()
 			SetBlockAreas(0);
 			
 			// ImGui::Checkbox("Demo Window", &m_bShowDemo);			// Edit bools storing our window open/close state
-			if (ImGui::Checkbox("Enable4xMsaa", &m_appData->bEnable4xMsaa))
-				m_appData->bOptionsChanged = true;
+			// if (ImGui::Checkbox("Enable4xMsaa", &m_appData->bEnable4xMsaa))
+				// m_appData->bOptionsChanged = true;
+			ImGui::Text(u8"摄像机属性");
 
 			const char* cameraViewTypes[] = 
 			{ 
@@ -171,23 +172,26 @@ void AppGUI::DrawGUI()
 				NameOf(CV_FrontView),
 				NameOf(CV_BackView)
 			};
-			ImGui::Combo(u8"视图类型", &(int)m_appData->ECameraViewType, cameraViewTypes, IM_ARRAYSIZE(cameraViewTypes));
+			ImGui::Combo(u8"视图类型", &(int)m_appData->_ECameraViewType, cameraViewTypes, IM_ARRAYSIZE(cameraViewTypes));
 
 			const char* cameraProjTypes[] =
 			{
 				NameOf(CP_PerspectiveProj),
 				NameOf(CP_OrthographicProj)
 			};
-			ImGui::Combo(u8"投影类型", &(int)m_appData->ECameraProjType, cameraProjTypes, IM_ARRAYSIZE(cameraProjTypes));
+			ImGui::Combo(u8"投影类型", &(int)m_appData->_ECameraProjType, cameraProjTypes, IM_ARRAYSIZE(cameraProjTypes));
+
+			if (ImGui::DragFloat(u8"FarZ", &m_appData->CameraFarZ, 1.0f, 100.0f, 2000.0f))
+				m_appData->bCameraFarZDirty = true;
 
 			const char* visualizationColorModes[] =
 			{
 				NameOf(VCM_ColorWhite),
 				NameOf(VCM_ColorRGB)
 			};
-			ImGui::Combo(u8"颜色模式", &(int)m_appData->EVisualizationColorMode, visualizationColorModes, IM_ARRAYSIZE(visualizationColorModes));
+			ImGui::Combo(u8"颜色模式", &(int)m_appData->_EVisualizationColorMode, visualizationColorModes, IM_ARRAYSIZE(visualizationColorModes));
 
-			ImGui::Checkbox(u8"显示网格", &m_appData->bShowGrid);
+			ImGui::Checkbox(u8"显示参考网格", &m_appData->bShowGrid);
 			if (m_appData->bShowGrid)
 			{
 				ImGui::SetNextItemWidth(70);
@@ -211,11 +215,19 @@ void AppGUI::DrawGUI()
 				m_appData->LocalToWorld = Matrix4(AffineTransform(trans).Rotation(rotat*(XM_PI/180.0f)).Scale(scale));			
 			}
 	
+			ImGui::Separator();
 			ImGui::ColorEdit3("clear color", (float*)&m_appData->ClearColor); // Edit 3 floats representing a color	
+			ImGui::DragFloat(u8"输入场景比例", &m_appData->FSceneScale, 0.00001f, 0.0001f, 1000.0f, "%.5f");
+
+			if (ImGui::Button(u8"设置"))
+				m_appData->Overflow = m_appData->MaxPixel.GetX();
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(100);
+			ImGui::InputFloat(u8"最大值", (float*)&m_appData->MaxPixel, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
 
 			if (ImGui::CollapsingHeader(u8"可视化对象选择"))
 			{
-				int* va_ptr = &(int)m_appData->EVisualizationAttribute;
+				int* va_ptr = &(int)m_appData->_EVisualizationAttribute;
 
 #define GUI_SetAttribute(x) if (ImGui::RadioButton(NameOf(x), va_ptr, (int)x)) m_appData->bVisualizationAttributeDirty = true;
 
@@ -241,7 +253,10 @@ void AppGUI::DrawGUI()
 						GUI_SetAttribute(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap);
 						GUI_SetAttribute(VA_Stats_Base_Pass_Vertex_Shader);
 						GUI_SetAttribute(VA_Stats_Texture_Samplers);
-						GUI_SetAttribute(VA_Stats_User_Interpolators);
+						GUI_SetAttribute(VA_Stats_User_Interpolators_Scalars);
+						GUI_SetAttribute(VA_Stats_User_Interpolators_Vectors);
+						GUI_SetAttribute(VA_Stats_User_Interpolators_TexCoords);
+						GUI_SetAttribute(VA_Stats_User_Interpolators_Custom);
 						GUI_SetAttribute(VA_Stats_Texture_Lookups_VS);
 						GUI_SetAttribute(VA_Stats_Texture_Lookups_PS);
 						GUI_SetAttribute(VA_Stats_Virtual_Texture_Lookups);

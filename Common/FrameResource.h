@@ -17,12 +17,12 @@ namespace DX
 	struct PassConstant
 	{
 		Matrix4 ViewProj = Matrix4(EIdentityTag::kIdentity);
+		float Overflow = 1000.0f;
 	};
 
 	struct ObjectConstant
 	{
-		Matrix4 World = Matrix4(EIdentityTag::kIdentity);
-		float Overflow = 1000.0f;
+		Matrix4 World = Matrix4(EIdentityTag::kIdentity);		
 		int PerFSceneSBufferOffset = 0;
 	};
 

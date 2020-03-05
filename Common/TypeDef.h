@@ -30,7 +30,7 @@ namespace DX
 
 #define NameOf(x) #x
 
-	enum CameraViewType
+	enum ECameraViewType
 	{
 		CV_FirstPersonView,
 		CV_FocusPointView,
@@ -42,13 +42,13 @@ namespace DX
 		CV_BackView
 	};
 
-	enum CameraProjType
+	enum ECameraProjType
 	{
 		CP_PerspectiveProj,
 		CP_OrthographicProj
 	};
 
-	enum FileOpenDialogOptions
+	enum EFileOpenDialogOptions
 	{
 		FOS_OVERWRITEPROMPT = 0x2,
 		FOS_STRICTFILETYPES = 0x4,

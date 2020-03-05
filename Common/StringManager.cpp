@@ -107,6 +107,30 @@ std::vector<std::wstring> StringUtil::WGetBetween(const std::wstring& wstr, cons
 	return temp;
 }
 
+std::vector<std::wstring> StringUtil::WGetBetween(const std::wstring& wstr, const std::wstring& bound1, const std::wstring& bound2)
+{
+	std::vector<std::wstring> temp;
+	std::wstring::size_type found1 = 0, found2;
+
+	while (true)
+	{
+		found1 = wstr.find(bound1, found1);
+		if (found1 != std::wstring::npos)
+		{
+			found2 = wstr.find(bound2, found1 + bound1.size());
+			if (found2 != std::wstring::npos)
+			{
+				temp.push_back(wstr.substr(found1 + bound1.size(), found2 - found1 - bound1.size()));
+				found1 = found2 + 1;
+			}
+			else break;
+		}
+		else break;
+	}
+
+	return temp;
+}
+
 std::vector<std::string> StringUtil::RemoveBetween(std::string& str, const std::string& boundary)
 {
 	std::vector<std::string> temp;

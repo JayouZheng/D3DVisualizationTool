@@ -28,8 +28,6 @@ DeviceResources::DeviceResources(
     DXGI_FORMAT backBufferFormat,
     DXGI_FORMAT depthBufferFormat,
     UINT backBufferCount,
-	UINT additionalRTVDescriptors,
-	UINT additionalDSVDescriptors,
     D3D_FEATURE_LEVEL minFeatureLevel,
     unsigned int flags) noexcept(false) :
         m_backBufferIndex(0),
@@ -59,8 +57,8 @@ DeviceResources::DeviceResources(
         throw std::out_of_range("minFeatureLevel too low");
     }
 
-	m_numRTVDescriptors = backBufferCount + 1 + additionalRTVDescriptors; // +1 Msaa RTV.
-	m_numDSVDescriptors = 1 + 1 + additionalDSVDescriptors; // +1 Msaa DSV
+	m_numRTVDescriptors = backBufferCount + 1 + MAX_OFFSCREEN_RTV_COUNT; // +1 Msaa RTV, +8 Offscreen RTV (Current support 8).
+	m_numDSVDescriptors = 1 + 1; // +1 Msaa DSV
 }
 
 // Destructor for DeviceResources.
@@ -398,8 +396,8 @@ void DeviceResources::CreateWindowSizeDependentResources()
         rtvDesc.Format = m_backBufferFormat;
         rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescriptor(m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), n, m_rtvDescriptorSize);
-        m_d3dDevice->CreateRenderTargetView(m_renderTargets[n].Get(), &rtvDesc, rtvDescriptor);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescCPUHandle(m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), n, m_rtvDescriptorSize);
+        m_d3dDevice->CreateRenderTargetView(m_renderTargets[n].Get(), &rtvDesc, rtvDescCPUHandle);
     }
 
     // Reset the index to the current back buffer.
@@ -620,12 +618,16 @@ void DeviceResources::Prepare(D3D12_RESOURCE_STATES beforeState)
 
 	if (m_options & c_Enable4xMsaa)
 		dirtyState = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+	else if (m_options & c_EnableOffscreenRender)
+		dirtyState = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
     if (dirtyState != D3D12_RESOURCE_STATE_RENDER_TARGET)
     {
         // Transition the render target into the correct state to allow for drawing into it.
         D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			(m_options & c_Enable4xMsaa) ? m_msaaRenderTarget.Get() : m_renderTargets[m_backBufferIndex].Get(),
+			(m_options & c_Enable4xMsaa) ? m_msaaRenderTarget.Get() : 
+			(m_options & c_EnableOffscreenRender) ? m_offscreenRenderTargets[m_activeOffscreenRTIndex].Get() : 
+			m_renderTargets[m_backBufferIndex].Get(),
 			dirtyState, 
 			D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -636,8 +638,8 @@ void DeviceResources::Prepare(D3D12_RESOURCE_STATES beforeState)
 void DeviceResources::Clear(const FLOAT colorRGBA[4], FLOAT depth, UINT8 stencil)
 {
 	// Clear the views.
-	auto renderTargetView = (m_options & c_Enable4xMsaa) ? GetMsaaRenderTargetView() : GetRenderTargetView();
-	auto depthStencilView = (m_options & c_Enable4xMsaa) ? GetMsaaDepthStencilView() : GetDepthStencilView();
+	auto renderTargetView = GetActiveRenderTargetView();
+	auto depthStencilView = GetActiveDepthStencilView();
 	m_commandList->OMSetRenderTargets(1, &renderTargetView, FALSE, &depthStencilView);
 	m_commandList->ClearRenderTargetView(renderTargetView, colorRGBA, 0, nullptr);
 	m_commandList->ClearDepthStencilView(depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, depth, stencil, 0, nullptr);
@@ -661,7 +663,9 @@ void DeviceResources::Present(D3D12_RESOURCE_STATES beforeState)
 					D3D12_RESOURCE_STATE_RENDER_TARGET,
 					D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
 				CD3DX12_RESOURCE_BARRIER::Transition(
+					(m_options & c_EnableOffscreenRender) ? m_offscreenRenderTargets[m_activeOffscreenRTIndex].Get() :
 					m_renderTargets[m_backBufferIndex].Get(),
+					(m_options & c_EnableOffscreenRender) ? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : 
 					D3D12_RESOURCE_STATE_PRESENT,
 					D3D12_RESOURCE_STATE_RESOLVE_DEST)
 			};
@@ -669,11 +673,14 @@ void DeviceResources::Present(D3D12_RESOURCE_STATES beforeState)
 			m_commandList->ResourceBarrier(2, barriers);
 		}
 
-		m_commandList->ResolveSubresource(m_renderTargets[m_backBufferIndex].Get(), 0, m_msaaRenderTarget.Get(), 0, m_backBufferFormat);
+		m_commandList->ResolveSubresource(
+			(m_options & c_EnableOffscreenRender) ? m_offscreenRenderTargets[m_activeOffscreenRTIndex].Get() :
+			m_renderTargets[m_backBufferIndex].Get(), 0, m_msaaRenderTarget.Get(), 0, m_backBufferFormat);
 
-		// Set render target for GUI which is typically rendered without MSAA.
+		// Set render target (Back Buffer) for GUI which is typically rendered without MSAA or Offscreen.
 		{
 			D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+				(m_options & c_EnableOffscreenRender) ? m_offscreenRenderTargets[m_activeOffscreenRTIndex].Get() :
 				m_renderTargets[m_backBufferIndex].Get(),
 				D3D12_RESOURCE_STATE_RESOLVE_DEST,
 				D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -684,7 +691,42 @@ void DeviceResources::Present(D3D12_RESOURCE_STATES beforeState)
 		m_commandList->OMSetRenderTargets(1, &GetRenderTargetView(), FALSE, nullptr);
 	}
 
-	// PostProcessing after item draw, before GUI, Offscreen RT required.
+	// PostProcessing after item draw, before render GUI, Offscreen RT required.
+	if (m_options & c_EnableOffscreenRender)
+	{
+		// Change offscreen texture to be used as an input.
+		m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+			m_offscreenRenderTargets[m_activeOffscreenRTIndex].Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, 
+			D3D12_RESOURCE_STATE_GENERIC_READ));
+
+		PostProcessing();
+
+		D3D12_RESOURCE_BARRIER barriers[2] =
+		{
+			CD3DX12_RESOURCE_BARRIER::Transition(
+				m_offscreenRenderTargets[m_activeOffscreenRTIndex].Get(),
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				D3D12_RESOURCE_STATE_COPY_SOURCE),
+			CD3DX12_RESOURCE_BARRIER::Transition(
+				m_renderTargets[m_backBufferIndex].Get(),
+				D3D12_RESOURCE_STATE_PRESENT,
+				D3D12_RESOURCE_STATE_COPY_DEST)
+		};
+
+		m_commandList->ResourceBarrier(2, barriers);
+
+		m_commandList->CopyResource(m_renderTargets[m_backBufferIndex].Get(), 
+			m_offscreenRenderTargets[m_activeOffscreenRTIndex].Get());
+
+		m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+			m_renderTargets[m_backBufferIndex].Get(),
+			D3D12_RESOURCE_STATE_COPY_DEST, 
+			D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+		m_commandList->OMSetRenderTargets(1, &GetRenderTargetView(), FALSE, nullptr);
+		m_commandList->ClearRenderTargetView(GetRenderTargetView(), DefaultClearValue::ColorRGBA, 0, nullptr);
+	}
 
 	// Render GUI.
 	RenderGUI();
@@ -942,6 +984,14 @@ void DeviceResources::RenderGUI()
 	}
 }
 
+void DeviceResources::PostProcessing()
+{
+	if (m_deviceNotify)
+	{
+		m_deviceNotify->PostProcessing();
+	}
+}
+
 void DeviceResources::OnOptionsChanged()
 {
 	WaitForGpu();
@@ -983,9 +1033,25 @@ void DeviceResources::CreateCommonDescriptorHeap(UINT numDescriptors, ID3D12Desc
 	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(ppDescriptorHeap)));
 }
 
+void DeviceResources::CreateTex2DShaderResourceView(ID3D12Resource *pResource, D3D12_CPU_DESCRIPTOR_HANDLE destDescriptor, DXGI_FORMAT format, UINT mipLevels /*= 1*/)
+{
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = mipLevels;
+
+	m_d3dDevice->CreateShaderResourceView(pResource, &srvDesc, destDescriptor);
+}
+
 void DeviceResources::CreateGraphicsPipelineState(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pDesc, ID3D12PipelineState** ppPipelineState)
 {
 	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(pDesc, IID_PPV_ARGS(ppPipelineState)));
+}
+
+void DeviceResources::CreateComputePipelineState(D3D12_COMPUTE_PIPELINE_STATE_DESC* pDesc, ID3D12PipelineState** ppPipelineState)
+{
+	ThrowIfFailed(m_d3dDevice->CreateComputePipelineState(pDesc, IID_PPV_ARGS(ppPipelineState)));
 }
 
 void DeviceResources::CreateDefaultBuffer(const void* pData, UINT64 byteSize, ID3D12Resource** ppDefaultBuffer, ID3D12Resource** ppUploadBuffer)
@@ -1028,4 +1094,115 @@ void DeviceResources::CreateDefaultBuffer(const void* pData, UINT64 byteSize, ID
 	// Note: uploadBuffer has to be kept alive after the above function calls because
 	// the command list has not been executed yet that performs the actual copy.
 	// The caller can Release the uploadBuffer after it knows the copy has been executed.
+}
+
+void DeviceResources::CreateOffscreenRenderTargets(UINT numRenderTargets, const DXGI_FORMAT* pRenderTargetFormats, const D3D12_RESOURCE_STATES* pDefaultStates)
+{
+	// Determine the render target size in pixels.
+	UINT width = std::max<UINT>(m_outputSize.right - m_outputSize.left, 1);
+	UINT height = std::max<UINT>(m_outputSize.bottom - m_outputSize.top, 1);
+
+	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+
+	//////////////////////////////////////////////////////////////
+	// Create Offscreen RT.
+	for (UINT i = 0; i < numRenderTargets; ++i)
+	{
+		DXGI_FORMAT format = NoSRGB(pRenderTargetFormats[i]);
+		D3D12_RESOURCE_DESC offscreenRTDesc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height);
+		offscreenRTDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+		D3D12_CLEAR_VALUE offscreenOptimizedClearValue = {};
+		offscreenOptimizedClearValue.Format = format;
+		memcpy(offscreenOptimizedClearValue.Color, DefaultClearValue::ColorRGBA, sizeof(float) * 4);
+
+		ThrowIfFailed(m_d3dDevice->CreateCommittedResource(
+			&heapProperties,
+			D3D12_HEAP_FLAG_NONE,
+			&offscreenRTDesc,
+			pDefaultStates[i],
+			&offscreenOptimizedClearValue,
+			IID_PPV_ARGS(m_offscreenRenderTargets[i].ReleaseAndGetAddressOf())
+		));
+
+		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+		rtvDesc.Format = format;
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+		m_d3dDevice->CreateRenderTargetView(
+			m_offscreenRenderTargets[i].Get(), &rtvDesc,
+			GetOffscreenRenderTargetView(i));
+	}
+	// Create Offscreen RT.
+	//////////////////////////////////////////////////////////////
+}
+
+const CD3DX12_STATIC_SAMPLER_DESC DeviceResources::GetStaticSamplers(const EStaticSampler& type)
+{
+	// Applications usually only need a handful of samplers. So just define them all up front
+	// and keep them available as part of the root signature.  
+	// In addition, you can only define 2032 number of static samplers, 
+	// which is more than enough for most applications. If you do need more, 
+	// however, you can just use non-static samplers and go through a sampler heap.
+	// D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, device->CreateSampler().
+
+	const CD3DX12_STATIC_SAMPLER_DESC PointWrap(
+		0, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC PointClamp(
+		1, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC LinearWrap(
+		2, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC LinearClamp(
+		3, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC AnisotropicWrap(
+		4, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressW
+		0.0f,                             // mipLODBias
+		8);                               // maxAnisotropy
+
+	const CD3DX12_STATIC_SAMPLER_DESC AnisotropicClamp(
+		5, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressW
+		0.0f,                              // mipLODBias
+		8);                                // maxAnisotropy
+
+#define Ret(x) case SS_##x: return x;
+	switch (type)
+	{
+		Ret(PointWrap);
+		Ret(PointClamp);
+		Ret(LinearWrap);
+		Ret(LinearClamp);
+		Ret(AnisotropicWrap);
+		Ret(AnisotropicClamp);
+	default:
+		break;
+	}
+	return PointWrap;
 }

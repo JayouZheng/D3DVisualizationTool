@@ -33,12 +33,13 @@ namespace DX
 		XMVECTOR GetLook() const;
 		XMFLOAT3 GetLook3f() const;
 
-		// Get frustum properties.
+		// Get/Set frustum properties.
 		float GetNearZ() const;
 		float GetFarZ() const;
 		float GetAspect() const;
 		float GetFovY() const;
 		float GetFovX() const;
+		void  SetFarZ(float farZ);
 
 		// Get near and far plane dimensions in view space coordinates.
 		float GetNearWindowWidth() const;
@@ -47,12 +48,12 @@ namespace DX
 		float GetFarWindowHeight() const;
 
 		// Get/Set View Type.
-		CameraViewType GetViewType() const;
-		void SetViewType(const CameraViewType& type);
+		ECameraViewType GetViewType() const;
+		void SetViewType(const ECameraViewType& type);
 
 		// Get/Set Proj Type.
-		CameraProjType GetProjType() const;
-		void SetProjType(const CameraProjType& type);
+		ECameraProjType GetProjType() const;
+		void SetProjType(const ECameraProjType& type);
 
 		// Set frustum.
 		void SetFrustum(float fovY, int width, int height, float zn, float zf);
@@ -102,8 +103,8 @@ namespace DX
 
 	private:
 
-		CameraViewType m_viewType = CV_FirstPersonView;
-		CameraProjType m_projType = CP_PerspectiveProj;
+		ECameraViewType m_viewType = CV_FirstPersonView;
+		ECameraProjType m_projType = CP_PerspectiveProj;
 
 		// Camera coordinate system with coordinates relative to world space.
 		XMFLOAT3 m_pos = { 0.0f, 0.0f, 0.0f };
@@ -132,7 +133,10 @@ namespace DX
 		float m_phi = 1.5f*XM_PIDIV4;
 		float m_radius = 25.0f;
 
+		// Others.
 		float m_offsetUp = 0.0f;
 		float m_offsetRight = 0.0f;
+
+		float m_move2DSpeed = 20.0f;
 	};
 }

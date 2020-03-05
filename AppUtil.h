@@ -144,7 +144,7 @@ namespace DX
     };
 
     // Helper utility converts D3D API failures into exceptions.
-    inline void ThrowIfFailed(HRESULT hr)
+    inline void ThrowIfFailedEx(HRESULT hr)
     {
         if (FAILED(hr))
         {
@@ -173,8 +173,8 @@ namespace DX
 		return std::wstring(buffer);
 	}
 
-#ifndef ThrowIfFailedEx
-#define ThrowIfFailedEx(x)                                            \
+#ifndef ThrowIfFailed
+#define ThrowIfFailed(x)                                            \
 {                                                                     \
     HRESULT hr__ = (x);                                               \
     std::wstring wfn = AnsiToWString(__FILE__);                       \
