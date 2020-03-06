@@ -43,7 +43,7 @@ VertexOut VS(uint vid : SV_VertexID)
 float4 PS(VertexOut pin) : SV_Target
 {
     float4 color = gOffscreenOutput.SampleLevel(gsamPointClamp, pin.TexC, 0.0f);
-    clip(color - 0.01f);
+    clip(color - 0.001f);
     color = saturate(color / gOverflow);
 	
     return color;
