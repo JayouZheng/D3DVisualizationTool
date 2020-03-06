@@ -3,20 +3,20 @@
 ### DX12对UE4场景数据资源分布比的可视化分析工具
 
 **操作说明**
-> **第一人称视图下：**
-> WSAD移动
-> 鼠标左键控制视角俯仰
-> **其他视图下：**
-> 鼠标左键控制旋转
-> 鼠标中键和右键控制缩放
+> **第一人称视图下：**  
+> WSAD移动  
+> 鼠标左键控制视角俯仰  
+> **其他视图下：**  
+> 鼠标左键控制旋转  
+> 鼠标中键和右键控制缩放  
 
 **截图示例**
 
-![](Shortcuts/D3DVisualizationTool-Cut001.png)
+![](https://github.com/zjyboy/D3DVisualizationTool/blob/master/Shortcuts/D3DVisualizationTool-Cut001.png)
 
-> **RGB 插值规则**
-> value = [0.0 -> 0.5], B = [1.0 -> 0.0], G = [0.0 -> 1.0]
-> value = [0.5 -> 1.0], G = [1.0 -> 0.0], R = [0.0 -> 1.0]
+> **RGB 插值规则**  
+> value = [0.0 -> 0.5], B = [1.0 -> 0.0], G = [0.0 -> 1.0]  
+> value = [0.5 -> 1.0], G = [1.0 -> 0.0], R = [0.0 -> 1.0]  
 
 ```c++
 float smooth = saturate(color.x / Overflow);
@@ -76,6 +76,6 @@ color.b = lerp(1.0f, 0.0f, saturate(smooth * 2));
 
 **命令行启动参数**
 
-	-dir [目标文件夹]				直接打开一个场景
+	-dir [目标文件夹]			直接打开一个场景
 	-scale [导入的场景比例]			设置场景导入比例
 	-warp 					启用软光栅
