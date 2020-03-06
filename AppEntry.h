@@ -24,7 +24,7 @@ public:
     ~AppEntry();
 
     // Initialization and management
-    void Initialize(HWND window, int width, int height);
+    void Initialize(HWND window, int width, int height, std::wstring cmdLine);
 
     // Basic game loop
     void Tick();
@@ -36,6 +36,8 @@ public:
 	virtual void RenderGUI() override;
 	virtual void PostProcessing() override;
 	virtual void OnOptionsChanged() override;
+
+	virtual void ParseCommandLine(std::wstring cmdLine) override;
 
     // Messages
     void OnActivated();

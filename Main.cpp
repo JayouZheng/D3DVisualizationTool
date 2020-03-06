@@ -33,7 +33,6 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 #endif
 
     UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
 
     if (!XMVerifyCPUSupport())
         return 1;
@@ -86,7 +85,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
         GetClientRect(hwnd, &rc);
 
 		AppUtil::SetGWindow(hwnd);
-        g_app->Initialize(hwnd, rc.right - rc.left, rc.bottom - rc.top);
+        g_app->Initialize(hwnd, rc.right - rc.left, rc.bottom - rc.top, std::wstring(lpCmdLine));
     }
 
     // Main message loop

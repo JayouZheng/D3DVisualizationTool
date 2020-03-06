@@ -32,13 +32,13 @@ AppEntry::~AppEntry()
 }
 
 // Initialize the Direct3D resources required to run.
-void AppEntry::Initialize(HWND window, int width, int height)
+void AppEntry::Initialize(HWND window, int width, int height, std::wstring cmdLine)
 {
 	m_window = window;
 	m_width = width;
 	m_height = height;
 
-    m_deviceResources->SetWindow(window, width, height);
+    m_deviceResources->SetWindow(window, width, height, cmdLine);
 
     m_deviceResources->CreateDeviceResources();
     CreateDeviceDependentResources(); // Second Initialize.
@@ -46,7 +46,7 @@ void AppEntry::Initialize(HWND window, int width, int height)
     m_deviceResources->CreateWindowSizeDependentResources();
     CreateWindowSizeDependentResources();
 	
-	m_appGui->InitGUI();
+	m_appGui->InitGUI(cmdLine);
 
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:
@@ -705,7 +705,7 @@ void AppEntry::OnMouseMove(WPARAM btnState, int x, int y)
 		m_bMousePosInBlockArea = true;
 	else m_bMousePosInBlockArea = false;
 
-	if (m_bMouseDownInBlockArea || m_bMousePosInBlockArea)
+	if (m_bMouseDownInBlockArea)
 		return;
 
 	if (btnState == MK_LBUTTON || btnState == MK_MBUTTON)
@@ -1138,6 +1138,11 @@ void AppEntry::OnOptionsChanged()
 		// 4xMsaa.
 		BuildPSO();
 	}
+}
+
+void AppEntry::ParseCommandLine(std::wstring cmdLine)
+{
+
 }
 
 #pragma endregion

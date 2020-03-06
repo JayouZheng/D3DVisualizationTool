@@ -8,7 +8,7 @@
 
 namespace DX
 {
-    // Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
+    // Provides an interface for an application that owns DeviceResources to do something on DR side.
     interface IDeviceNotify
     {
         virtual void OnDeviceLost() = 0;
@@ -17,6 +17,8 @@ namespace DX
 		virtual void RenderGUI() = 0;
 		virtual void PostProcessing() = 0;
 		virtual void OnOptionsChanged() = 0;
+
+		virtual void ParseCommandLine(std::wstring cmdLine) = 0;
     };
 
 	namespace DefaultClearValue
@@ -59,7 +61,7 @@ namespace DX
 			UINT numRenderTargets, 
 			const DXGI_FORMAT* pRenderTargetFormats, 
 			const D3D12_RESOURCE_STATES* pDefaultStates);
-        void SetWindow(HWND window, int width, int height);
+        void SetWindow(HWND window, int width, int height, std::wstring cmdLine);
         bool WindowSizeChanged(int width, int height);
         void HandleDeviceLost();
         void RegisterDeviceNotify(IDeviceNotify* deviceNotify) { m_deviceNotify = deviceNotify; }
@@ -73,6 +75,7 @@ namespace DX
 		void RenderGUI();
 		void PostProcessing();
 		void OnOptionsChanged();
+		void ParseCommandLine(std::wstring cmdLine);
 
 		template<typename TLambda>
 		void ExecuteCommandLists(const TLambda& lambda);
@@ -234,6 +237,7 @@ namespace DX
 		unsigned int										m_sampleCount;
 		unsigned int										m_targetSampleCount = 4;
 		UINT												m_activeOffscreenRTIndex = 0;
+		bool												m_useWarpDevice = false;
     };
 
 	template<typename TLambda>

@@ -20,7 +20,7 @@ public:
 	AppGUI(Window InWindow, ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdList, UINT InNumFrameResources);
 	~AppGUI();
 
-	bool InitGUI();
+	bool InitGUI(std::wstring cmdLine);
 	void RenderGUI();
 	void DestroyGUI();
 
@@ -46,7 +46,10 @@ private:
 	void NewFrame();
 	void DrawGUI();
 
+	void ImportFSceneFromDir(std::wstring path);
 	void SetBlockAreas(int index, bool bFullScreen = false);
+
+	void ParseCommandLine(std::wstring cmdLine);
 
 	// Note: Put struct member first, structure was padded due to alignment specifier...
 
@@ -68,4 +71,5 @@ private:
 	// Others.
 	std::atomic<bool> m_importerLock = false;
 	TimerManager::PerformanceCounter m_performanceCounter;
+	bool m_notifyImporterBegin = false;
 };

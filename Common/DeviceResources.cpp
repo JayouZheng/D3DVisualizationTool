@@ -129,15 +129,29 @@ void DeviceResources::CreateDeviceResources()
         }
     }
 
-    ComPtr<IDXGIAdapter1> adapter;
-    GetAdapter(adapter.GetAddressOf());
+	if (m_useWarpDevice)
+	{
+		ComPtr<IDXGIAdapter> warpAdapter;
+		ThrowIfFailed(m_dxgiFactory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
 
-    // Create the DX12 API device object.
-    ThrowIfFailed(D3D12CreateDevice(
-        adapter.Get(),
-        m_d3dMinFeatureLevel,
-        IID_PPV_ARGS(m_d3dDevice.ReleaseAndGetAddressOf())
-        ));
+		ThrowIfFailed(D3D12CreateDevice(
+			warpAdapter.Get(),
+			m_d3dMinFeatureLevel,
+			IID_PPV_ARGS(&m_d3dDevice)
+		));
+	}
+	else
+	{
+		ComPtr<IDXGIAdapter1> adapter;
+		GetAdapter(adapter.GetAddressOf());
+
+		// Create the DX12 API device object.
+		ThrowIfFailed(D3D12CreateDevice(
+			adapter.Get(),
+			m_d3dMinFeatureLevel,
+			IID_PPV_ARGS(m_d3dDevice.ReleaseAndGetAddressOf())
+		));
+	}
 
     m_d3dDevice->SetName(L"DeviceResources");
 
@@ -531,13 +545,15 @@ void DeviceResources::CreateWindowSizeDependentResources()
 }
 
 // This method is called when the Win32 window is created (or re-created).
-void DeviceResources::SetWindow(HWND window, int width, int height)
+void DeviceResources::SetWindow(HWND window, int width, int height, std::wstring cmdLine)
 {
     m_window = window;
 
     m_outputSize.left = m_outputSize.top = 0;
     m_outputSize.right = width;
     m_outputSize.bottom = height;
+
+	ParseCommandLine(cmdLine);
 }
 
 // This method is called when the Win32 window changes size.
@@ -998,6 +1014,20 @@ void DeviceResources::OnOptionsChanged()
 	if (m_deviceNotify)
 	{
 		m_deviceNotify->OnOptionsChanged();
+	}
+}
+
+void DeviceResources::ParseCommandLine(std::wstring cmdLine)
+{
+	std::wstring::size_type found = cmdLine.find(L"-warp");
+	if (found != std::wstring::npos)
+	{
+		m_useWarpDevice = true;
+	}
+
+	if (m_deviceNotify)
+	{
+		m_deviceNotify->ParseCommandLine(cmdLine);
 	}
 }
 

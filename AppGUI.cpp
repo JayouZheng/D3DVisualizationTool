@@ -9,6 +9,8 @@
 #include "Common/FileManager.h"
 #include "Common/StringManager.h"
 
+using namespace DX::StringManager;
+
 AppGUI::AppGUI(Window InWindow, ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCmdList, UINT InNumFrameResources)
 	: m_window(InWindow), m_d3dDevice(InDevice), m_d3dCommandList(InCmdList), m_numFrameResources(InNumFrameResources)
 {
@@ -27,8 +29,10 @@ AppGUI::~AppGUI()
 	m_d3dSrvDescHeap = nullptr;
 }
 
-bool AppGUI::InitGUI()
+bool AppGUI::InitGUI(std::wstring cmdLine)
 {
+	ParseCommandLine(cmdLine);
+
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -294,26 +298,7 @@ void AppGUI::DrawGUI()
 				std::wstring path;
 				if (FileManager::FileUtil::OpenDialogBox(m_window.Handle, path, FOS_PICKFOLDERS))
 				{
-					static std::wstring g_path;
-					g_path = path;
-					m_importerLock = false;
-					m_performanceCounter.BeginCounter("importer");
-
-					std::thread([&]()
-					{
-						if (!m_importerLock)
-						{
-							if (!m_importer->GetDataDirtyFlag())
-							{
-								m_importer->FillDataSets(g_path);
-								m_importer->SetDataDirtyFlag(true);
-							}
-							m_importerLock = true;
-						}						
-
-					}).detach();				
-
-					ImGui::OpenPopup(u8"导入器");
+					ImportFSceneFromDir(path);					
 				}
 			}
 
@@ -323,6 +308,12 @@ void AppGUI::DrawGUI()
 
 			ImGui::SameLine();
 			ImGui::Text(u8"默认LOD0");
+
+			if (m_notifyImporterBegin)
+			{
+				ImGui::OpenPopup(u8"导入器");
+				m_notifyImporterBegin = false;
+			}
 
 			static std::string hint;
 			if (m_importerLock)
@@ -353,6 +344,29 @@ void AppGUI::DrawGUI()
 	}
 }
 
+void AppGUI::ImportFSceneFromDir(std::wstring path)
+{
+	static std::wstring g_path;
+	g_path = path;
+	m_importerLock = false;
+	m_notifyImporterBegin = true;
+	m_performanceCounter.BeginCounter("importer");
+
+	std::thread([&]()
+	{
+		if (!m_importerLock)
+		{
+			if (!m_importer->GetDataDirtyFlag())
+			{
+				m_importer->FillDataSets(g_path);
+				m_importer->SetDataDirtyFlag(true);
+			}
+			m_importerLock = true;
+		}
+
+	}).detach();
+}
+
 void AppGUI::SetBlockAreas(int index, bool bFullScreen)
 {
 	if (index >= m_appData->BlockAreas.size())
@@ -375,4 +389,19 @@ void AppGUI::SetBlockAreas(int index, bool bFullScreen)
 	}
 
 	m_appData->BlockAreas[0] = std::move(blockArea);
+}
+
+void AppGUI::ParseCommandLine(std::wstring cmdLine)
+{
+	std::vector<std::wstring> cmds = StringUtil::WGetBetween(cmdLine, L"-dir [", L"]");
+	if (!cmds.empty())
+	{
+		ImportFSceneFromDir(cmds.front());
+	}
+	cmds.clear();
+	cmds = StringUtil::WGetBetween(cmdLine, L"-scale [", L"]");
+	if (!cmds.empty())
+	{
+		m_appData->FSceneScale = StringUtil::WStringToNumeric<float>(cmds.front());
+	}
 }
