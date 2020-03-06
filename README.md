@@ -14,7 +14,7 @@
 
 Shortcuts/D3DVisualizationTool-Cut001.png
 
-![](ftp://95.169.12.159/pub/D3DVisualizationTool-Cut001.png)
+![](https://github.com/zjyboy/D3DVisualizationTool/blob/master/Shortcuts/D3DVisualizationTool-Cut001.png)
 
 > **RGB 插值规则**  
 > value = [0.0 -> 0.5], B = [1.0 -> 0.0], G = [0.0 -> 1.0]  
