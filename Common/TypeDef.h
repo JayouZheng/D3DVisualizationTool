@@ -29,6 +29,7 @@ namespace DX
 	typedef void(*PFVOID)();
 
 #define NameOf(x) #x
+#define MAX_PATH          260
 
 	enum ECameraViewType
 	{

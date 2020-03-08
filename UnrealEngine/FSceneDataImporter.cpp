@@ -14,12 +14,14 @@ void FSceneDataImporter::FillDataSets(const std::wstring& path)
 {
 	m_perLODDataSets.clear();
 
-	std::wstring::size_type found = path.rfind(L"\\");
-	// std::wstring path_prefix = path.substr(0, found);
-	std::wstring file_prefix = path.substr(found + 1);
+	std::wstring::size_type found = path.find_last_of(L"\\/");
+	std::wstring file_prefix;
+	if (found != std::wstring::npos)
+		file_prefix = path.substr(found + 1);
 
 	// delete "World_".
 	std::wstring dir_prefix = L"World_";
+	found = std::wstring::npos;
 	found = file_prefix.find(dir_prefix);
 	if (found != std::wstring::npos)
 		file_prefix.erase(found, dir_prefix.length());
@@ -54,7 +56,8 @@ void FSceneDataImporter::FillDataSets(const std::wstring& path)
 	std::wstring postfix = L"_LOD";
 	for (auto& file : all_possible_files)
 	{
-		std::wstring::size_type found = file.rfind(postfix);
+		found = std::wstring::npos;
+		found = file.rfind(postfix);
 		if (found != std::wstring::npos)
 			max_lod = DirectX::XMMax<int32>(max_lod, StringUtil::WCharToInt32(file[found + postfix.size()]));
 	}
@@ -72,7 +75,6 @@ void FSceneDataImporter::FillDataSets(const std::wstring& path)
 		std::vector<std::wstring> table;
 
 		fin.open(dir + _file);
-		found = std::wstring::npos;
 		if (fin.good())
 		{
 			while (!fin.eof())
@@ -85,10 +87,14 @@ void FSceneDataImporter::FillDataSets(const std::wstring& path)
 		table.erase(table.begin());
 
 		std::wstring table_name = _file;
+		found = std::wstring::npos;
 		found = table_name.find(file_prefix);
-		table_name.erase(found, file_prefix.size());
+		if (found != std::wstring::npos)
+			table_name.erase(found, file_prefix.size());
+		found = std::wstring::npos;
 		found = table_name.rfind(L".csv");
-		table_name.erase(found, 4);
+		if (found != std::wstring::npos)
+			table_name.erase(found, 4);
 		g_tables[table_name] = table;
 	}
 
@@ -104,6 +110,7 @@ void FSceneDataImporter::FillDataSets(const std::wstring& path)
 				continue;
 			std::vector<std::wstring> items;
 			std::wstring::size_type last_found = 0;
+			found = std::wstring::npos;
 			found = _row.find_first_of(L",\"");
 			while (found != std::wstring::npos)
 			{

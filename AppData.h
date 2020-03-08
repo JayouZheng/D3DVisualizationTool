@@ -74,28 +74,32 @@ namespace DX
 
 	struct AppData
 	{
-		// User Data.
-		float GridWidth = 60.0f;
-		uint32 GridUnit = 60;
-		Vector4 ClearColor = { 0.608f, 0.689f, 0.730f, 1.0f };
+		// User Data.	
 		Matrix4 LocalToWorld = Matrix4(EIdentityTag::kIdentity);
-		bool bEnable4xMsaa = false;
+		Vector4 MaxPixel = Math::Vector4(Math::EZeroTag::kZero);
+		Vector4 ClearColor = { 0.608f, 0.689f, 0.730f, 1.0f };
+		uint32 GridUnit = 60;
+		
 		ECameraViewType _ECameraViewType = CV_FocusPointView;
-		ECameraProjType _ECameraProjType = CP_PerspectiveProj;
+		ECameraProjType _ECameraProjType = CP_PerspectiveProj;			
+		EVisualizationAttribute _EVisualizationAttribute = VA_NumVertices;		
+		EVisualizationColorMode _EVisualizationColorMode = VCM_ColorWhite;
+		
+		float GridWidth = 60.0f;
 		float DragSpeed = 1.0f;
 		float Overflow = 1000.0f;
-		bool bShowGrid = true;
-		EVisualizationAttribute _EVisualizationAttribute = VA_NumVertices;
-		bool bClearFScene = false;
-		bool bVisualizationAttributeDirty = true;
-		EVisualizationColorMode _EVisualizationColorMode = VCM_ColorWhite;
 		float CameraFarZ = 2000.0f;
 		float FSceneScale = 0.001f;
-		Vector4 MaxPixel = Math::Vector4(Math::EZeroTag::kZero);
+
+		bool bEnable4xMsaa = false;
+		bool bShowGrid = true;
+		bool bClearFScene = false;
+		bool bVisualizationAttributeDirty = true;
 		bool bEnableCalcMax = true;
 
 		// App Data.
 		std::vector<std::unique_ptr<BlockArea>> BlockAreas;
+		std::wstring AppPath;
 		bool bOptionsChanged = false;
 		bool bGridDirdy = false;
 		bool bCameraFarZDirty = false;

@@ -20,7 +20,7 @@ class AppEntry : public IDeviceNotify
 {
 public:
 
-    AppEntry() noexcept(false);
+    AppEntry(std::wstring appPath) noexcept(false);
     ~AppEntry();
 
     // Initialization and management
@@ -133,6 +133,8 @@ private:
 	HWND m_window = nullptr;
 	int  m_width  = 1280;
 	int  m_height = 720;
+
+	std::wstring m_appPath;
 
 	XMINT2 m_lastMousePos;
 	bool   m_bMouseDownInBlockArea = false;

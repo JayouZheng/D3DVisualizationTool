@@ -33,18 +33,19 @@ bool AppGUI::InitGUI(std::wstring cmdLine)
 {
 	ParseCommandLine(cmdLine);
 
-	// Setup Dear ImGui context
+	// Setup Dear ImGui context.
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io; // (void) 告诉编译器变量 io 已使用
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+	ImGuiIO& io = ImGui::GetIO();
+	
+	// Save imgui.ini manually.
+	io.IniFilename = NULL;
+	ImGui::LoadIniSettingsFromDisk(std::string(StringUtil::WStringToString(m_appData->AppPath) + "AppGui.ini").c_str());
 
-	// Setup Dear ImGui style
-	// ImGui::StyleColorsDark();
+	// Setup Dear ImGui style.
 	ImGui::StyleColorsClassic();
 
-	// Setup Platform/Renderer bindings
+	// Setup Platform/Renderer bindings.
 	if (!ImGui_ImplWin32_Init(m_window.Handle))
 	{
 		return false;
@@ -67,32 +68,11 @@ bool AppGUI::InitGUI(std::wstring cmdLine)
 		return false;
 	}
 
-	// Load Fonts
-	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-	// - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-	// - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-	// - Read 'misc/fonts/README.txt' for more instructions and details.
-	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-	// io.Fonts->AddFontDefault();
-	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-	// ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-	// IM_ASSERT(font != NULL);
-	// ImFont* font1 = io.Fonts->AddFontFromFileTTF(u8"imgui/fonts/方正正中黑简体.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
-	// IM_ASSERT(font1 != NULL);
-	// ImFont* font2 = io.Fonts->AddFontFromFileTTF(u8"imgui/fonts/simkai.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
-	// IM_ASSERT(font2 != NULL);
-
-	ImFont* font = io.Fonts->AddFontFromFileTTF(u8"imgui/fonts/msyh.ttc", 20.0f, NULL, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
+	// Load Fonts.
+	ImFont* font = io.Fonts->AddFontFromFileTTF(
+		"C:/Windows/Fonts/msyh.ttc",
+		20.0f, NULL, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
 	IM_ASSERT(font != NULL);
-
-	// io.FontDefault = font;
-
-	// Our state
-	m_bShowDemo = true;
 
 	return true;
 }
@@ -107,10 +87,10 @@ void AppGUI::RenderGUI()
 
 void AppGUI::DestroyGUI()
 {
-	// FlushCommandQueue Or WaitForGpu.
-	// 必要的调用，否则导致 imgui 释放 GPU 占用资源.
+	// After WaitForGpu.
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
+	ImGui::SaveIniSettingsToDisk(std::string(StringUtil::WStringToString(m_appData->AppPath) + "AppGui.ini").c_str());
 	ImGui::DestroyContext();
 }
 

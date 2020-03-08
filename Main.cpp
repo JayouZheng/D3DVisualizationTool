@@ -41,8 +41,33 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
     Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_SINGLETHREADED);
     if (FAILED(initialize))
         return 1;
+	
+	// Get App Name & App Path.
+	wchar_t exe_path[MAX_PATH];
+	GetModuleFileName(NULL, exe_path, MAX_PATH);
+	std::wstring app_path = std::wstring(exe_path);
+	std::wstring app_name;
+	std::wstring::size_type found = app_path.find_last_of(L"\\/");
+	if (found != std::wstring::npos)
+	{
+		app_name = app_path.substr(found + 1);
+		app_path = app_path.substr(0, found + 1);
+	}
 
-    g_app = std::make_unique<AppEntry>();
+	std::vector<std::wstring> delete_dirs =
+	{ 
+		L"x64\\Debug\\", 
+		L"x64\\Release\\"
+	};
+	for (auto& dir : delete_dirs)
+	{
+		found = std::wstring::npos;
+		found = app_path.rfind(dir);
+		if (found != std::wstring::npos)
+			app_path.erase(found, dir.size());			
+	}
+	
+    g_app = std::make_unique<AppEntry>(app_path);
 
     // Register class and create window
     {

@@ -9,7 +9,7 @@ using namespace DX::StringManager;
 
 extern void ExitGame();
 
-AppEntry::AppEntry() noexcept(false)
+AppEntry::AppEntry(std::wstring appPath) noexcept(false)
 {
     m_deviceResources = std::make_unique<DeviceResources>(
 		m_backBufferFormat, 
@@ -17,6 +17,7 @@ AppEntry::AppEntry() noexcept(false)
 		m_numFrameResources);
 
     m_deviceResources->RegisterDeviceNotify(this);
+	m_appPath = appPath;
 }
 
 AppEntry::~AppEntry()
@@ -41,11 +42,13 @@ void AppEntry::Initialize(HWND window, int width, int height, std::wstring cmdLi
     m_deviceResources->SetWindow(window, width, height, cmdLine);
 
     m_deviceResources->CreateDeviceResources();
-    CreateDeviceDependentResources(); // Second Initialize.
-
+	// Create AppGui Instance & ...
+    CreateDeviceDependentResources();
+	
     m_deviceResources->CreateWindowSizeDependentResources();
     CreateWindowSizeDependentResources();
-	
+
+	m_appGui->GetAppData()->AppPath = m_appPath;
 	m_appGui->InitGUI(cmdLine);
 
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
@@ -907,16 +910,16 @@ void AppEntry::BuildRootSignature()
 
 void AppEntry::BuildShadersAndInputLayout()
 {
-	m_shaderByteCode["VS"] = AppUtil::CompileShader(L"Shaders\\common.hlsl", nullptr, "VS", "vs_5_0");	
-	m_shaderByteCode["PS"] = AppUtil::CompileShader(L"Shaders\\common.hlsl", nullptr, "PS", "ps_5_0");
+	m_shaderByteCode["VS"] = AppUtil::CompileShader(m_appPath + L"Shaders/common.hlsl", nullptr, "VS", "vs_5_0");	
+	m_shaderByteCode["PS"] = AppUtil::CompileShader(m_appPath + L"Shaders/common.hlsl", nullptr, "PS", "ps_5_0");
 
-	m_shaderByteCode["BoxVS"] = AppUtil::CompileShader(L"Shaders\\common.hlsl", nullptr, "BoxVS", "vs_5_0");
+	m_shaderByteCode["BoxVS"] = AppUtil::CompileShader(m_appPath + L"Shaders/common.hlsl", nullptr, "BoxVS", "vs_5_0");
 
-	m_shaderByteCode["FullSQuadVS"] = AppUtil::CompileShader(L"Shaders\\fullscreenquad.hlsl", nullptr, "VS", "vs_5_0");
-	m_shaderByteCode["FullSQuadPS"] = AppUtil::CompileShader(L"Shaders\\fullscreenquad.hlsl", nullptr, "PS", "ps_5_0");
-	m_shaderByteCode["FullSQuadRGBPS"] = AppUtil::CompileShader(L"Shaders\\fullscreenquad.hlsl", nullptr, "RGBPS", "ps_5_0");
+	m_shaderByteCode["FullSQuadVS"] = AppUtil::CompileShader(m_appPath + L"Shaders/fullscreenquad.hlsl", nullptr, "VS", "vs_5_0");
+	m_shaderByteCode["FullSQuadPS"] = AppUtil::CompileShader(m_appPath + L"Shaders/fullscreenquad.hlsl", nullptr, "PS", "ps_5_0");
+	m_shaderByteCode["FullSQuadRGBPS"] = AppUtil::CompileShader(m_appPath + L"Shaders/fullscreenquad.hlsl", nullptr, "RGBPS", "ps_5_0");
 
-	m_shaderByteCode["ComputeMaxCS"] = AppUtil::CompileShader(L"Shaders\\computemax.hlsl", nullptr, "CS", "cs_5_0");
+	m_shaderByteCode["ComputeMaxCS"] = AppUtil::CompileShader(m_appPath + L"Shaders/computemax.hlsl", nullptr, "CS", "cs_5_0");
 
 	m_inputLayout =
 	{
