@@ -31,6 +31,8 @@ namespace DX
 		VA_NumTextures,
 
 		// Material.
+		VA_UniformBufferSize,
+		VA_NumUniformBufferMembers,
 		VA_Stats_Base_Pass_Shader_Instructions,
 		VA_Stats_Base_Pass_Shader_With_Surface_Lightmap,
 		VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap,
@@ -218,6 +220,10 @@ namespace UnrealEngine
 		FString ShaderErrors;
 
 		/////////////////////////
+		// UniformBuffer...
+		FString UniformBufferSummaryString;
+
+		/////////////////////////
 		// Material
 		FString MaterialDomain;
 		FString BlendMode;
@@ -237,6 +243,15 @@ namespace UnrealEngine
 		int32 BPSSurfaceLightmap;
 		int32 BPSVolumetricLightmap;
 		int32 BPSVertex;
+		/////////////////////////
+
+		/////////////////////////
+		// UniformBuffer...
+		int32 UniformBufferSize;
+		int32 NumUniformBufferMembers;
+		/////////////////////////
+
+		/////////////////////////
 		// Material...
 		uint8 TwoSided : 1;
 		uint8 bCastRayTracedShadows : 1;

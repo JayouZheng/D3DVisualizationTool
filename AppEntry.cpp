@@ -349,6 +349,9 @@ void AppEntry::Update(const StepTimer& timer)
 								for (auto& texID : uniqueTexIDs)
 									colorX += fSceneDataSet.TexturesTable[texID.second].CurrentKB;
 								break;
+
+								SetColorXCaseMatProp(VA_UniformBufferSize, staticMesh, UniformBufferSize);
+								SetColorXCaseMatProp(VA_NumUniformBufferMembers, staticMesh, NumUniformBufferMembers);
 								SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_Instructions, staticMesh, BPSCount);
 								SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Surface_Lightmap, staticMesh, BPSSurfaceLightmap);
 								SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap, staticMesh, BPSVolumetricLightmap);
@@ -431,6 +434,9 @@ void AppEntry::Update(const StepTimer& timer)
 							for (auto& texID : uniqueTexIDs)
 								colorX += fSceneDataSet.TexturesTable[texID.second].CurrentKB;
 							break;
+
+							SetColorXCaseMatProp(VA_UniformBufferSize, skeletalMesh, UniformBufferSize);
+							SetColorXCaseMatProp(VA_NumUniformBufferMembers, skeletalMesh, NumUniformBufferMembers);
 							SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_Instructions, skeletalMesh, BPSCount);
 							SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Surface_Lightmap, skeletalMesh, BPSSurfaceLightmap);
 							SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap, skeletalMesh, BPSVolumetricLightmap);

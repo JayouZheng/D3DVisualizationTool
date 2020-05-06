@@ -233,6 +233,8 @@ void AppGUI::DrawGUI()
 							ImGui::TreePop();
 						}
 
+						GUI_SetAttribute(VA_UniformBufferSize);
+						GUI_SetAttribute(VA_NumUniformBufferMembers);
 						GUI_SetAttribute(VA_Stats_Base_Pass_Shader_Instructions);
 						GUI_SetAttribute(VA_Stats_Base_Pass_Shader_With_Surface_Lightmap);
 						GUI_SetAttribute(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap);

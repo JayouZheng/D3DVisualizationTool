@@ -298,6 +298,12 @@ void FSceneDataImporter::_FillDataSets(std::unordered_map <std::wstring, std::ve
 					MaterialsDataSet.Name = safe_index(row, index);
 					MaterialsDataSet.NumInstances = numeric_safe_index(row, index, uint32);
 					MaterialsDataSet.NumRefs = numeric_safe_index(row, index, uint32);
+
+					// Uniform Buffer
+					MaterialsDataSet.UniformBufferSize = numeric_safe_index(row, index, int32);
+					MaterialsDataSet.NumUniformBufferMembers = numeric_safe_index(row, index, int32);
+					MaterialsDataSet.UniformBufferSummaryString = safe_index(row, index);
+
 					MaterialsDataSet.BPSCount = numeric_safe_index(row, index, int32);
 					MaterialsDataSet.BPSSurfaceLightmap = numeric_safe_index(row, index, int32);
 					MaterialsDataSet.BPSVolumetricLightmap = numeric_safe_index(row, index, int32);
