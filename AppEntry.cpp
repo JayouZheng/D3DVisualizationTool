@@ -259,7 +259,7 @@ void AppEntry::Update(const StepTimer& timer)
 				for (auto& fSceneDataSet : m_allFSceneDataSets)
 				{
 #pragma region LocalUsefulDefine
-#define SetColorX(y, x) case VA_##x: colorX = (float)y.x; break;
+#define SetColorX(x, y) case VA_##y: colorX = (float)x.y; break;
 #define SetColorXCaseMatProp(x, y, z) \
 { \
 	case x: \
@@ -335,10 +335,18 @@ void AppEntry::Update(const StepTimer& timer)
 							// Calculate the specific property for StaticMesh.
 							switch (m_appGui->GetAppData()->_EVisualizationAttribute)
 							{
-								SetColorX(staticMesh, NumVertices);
-								SetColorX(staticMesh, NumTriangles);
-								SetColorX(staticMesh, NumInstances);
-								SetColorX(staticMesh, NumLODs);
+
+#define SMSetColorX(x) SetColorX(staticMesh, x)
+#define SMSetColorXCaseMatProp(x, y) SetColorXCaseMatProp(x, staticMesh, y)
+#define SMSetColorXCaseMatPropString(x, y) SetColorXCaseMatPropString(x, staticMesh, y)
+#define SMSetColorXCaseMatPropStringGetBetween(x, y, b1, b2) SetColorXCaseMatPropStringGetBetween(x, staticMesh, y, b1, b2)
+
+							case VA_NumActors: colorX = 1.0f; break;
+
+								SMSetColorX(NumVertices);
+								SMSetColorX(NumTriangles);
+								SMSetColorX(NumInstances);
+								SMSetColorX(NumLODs);
 							case VA_NumMaterials:
 								colorX = (float)(staticMesh.UsedMaterialsIndices.size() + staticMesh.UsedMaterialIntancesIndices.size());
 								break;
@@ -350,41 +358,41 @@ void AppEntry::Update(const StepTimer& timer)
 									colorX += fSceneDataSet.TexturesTable[texID.second].CurrentKB;
 								break;
 
-								SetColorXCaseMatProp(VA_UniformBufferSize, staticMesh, UniformBufferSize);
-								SetColorXCaseMatProp(VA_NumUniformBufferMembers, staticMesh, NumUniformBufferMembers);
-								SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_Instructions, staticMesh, BPSCount);
-								SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Surface_Lightmap, staticMesh, BPSSurfaceLightmap);
-								SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap, staticMesh, BPSVolumetricLightmap);
-								SetColorXCaseMatProp(VA_Stats_Base_Pass_Vertex_Shader, staticMesh, BPSVertex);
+								SMSetColorXCaseMatProp(VA_UniformBufferSize, UniformBufferSize);
+								SMSetColorXCaseMatProp(VA_NumUniformBufferMembers, NumUniformBufferMembers);
+								SMSetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_Instructions, BPSCount);
+								SMSetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Surface_Lightmap, BPSSurfaceLightmap);
+								SMSetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap, BPSVolumetricLightmap);
+								SMSetColorXCaseMatProp(VA_Stats_Base_Pass_Vertex_Shader, BPSVertex);
 
-								SetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Samplers, staticMesh, TexSamplers, L"_", L"/16");
-								SetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Scalars, staticMesh, UserInterpolators, L"", L"/");
-								SetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Vectors, staticMesh, UserInterpolators, L"(", L"/4 Vectors");
-								SetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_TexCoords, staticMesh, UserInterpolators, L"TexCoords: ", L",");
-								SetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Custom, staticMesh, UserInterpolators, L"Custom: ", L")");
-								SetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Lookups_VS, staticMesh, TexLookups, L"VS(", L")");
-								SetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Lookups_PS, staticMesh, TexLookups, L"PS(", L")");
+								SMSetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Samplers, TexSamplers, L"_", L"/16");
+								SMSetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Scalars, UserInterpolators, L"", L"/");
+								SMSetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Vectors, UserInterpolators, L"(", L"/4 Vectors");
+								SMSetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_TexCoords, UserInterpolators, L"TexCoords: ", L",");
+								SMSetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Custom, UserInterpolators, L"Custom: ", L")");
+								SMSetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Lookups_VS, TexLookups, L"VS(", L")");
+								SMSetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Lookups_PS, TexLookups, L"PS(", L")");
 								
-								SetColorXCaseMatPropString(VA_Stats_Virtual_Texture_Lookups, staticMesh, VTLookups);
+								SMSetColorXCaseMatPropString(VA_Stats_Virtual_Texture_Lookups, VTLookups);
 
-								SetColorXCaseMatProp(VA_Material_Two_Sided, staticMesh, TwoSided);
-								SetColorXCaseMatProp(VA_Material_Cast_Ray_Traced_Shadows, staticMesh, bCastRayTracedShadows);
-								SetColorXCaseMatProp(VA_Translucency_Screen_Space_Reflections, staticMesh, bScreenSpaceReflections);
-								SetColorXCaseMatProp(VA_Translucency_Contact_Shadows , staticMesh, bContactShadows);
-								SetColorXCaseMatProp(VA_Translucency_Directional_Lighting_Intensity, staticMesh, TranslucencyDirectionalLightingIntensity);
-								SetColorXCaseMatProp(VA_Translucency_Apply_Fogging, staticMesh, bUseTranslucencyVertexFog);
-								SetColorXCaseMatProp(VA_Translucency_Compute_Fog_Per_Pixel, staticMesh, bComputeFogPerPixel);
-								SetColorXCaseMatProp(VA_Translucency_Output_Velocity, staticMesh, bOutputTranslucentVelocity);
-								SetColorXCaseMatProp(VA_Translucency_Render_After_DOF, staticMesh, bEnableSeparateTranslucency);
-								SetColorXCaseMatProp(VA_Translucency_Responsive_AA, staticMesh, bEnableResponsiveAA);
-								SetColorXCaseMatProp(VA_Translucency_Mobile_Separate_Translucency, staticMesh, bEnableMobileSeparateTranslucency);
-								SetColorXCaseMatProp(VA_Translucency_Disable_Depth_Test, staticMesh, bDisableDepthTest);
-								SetColorXCaseMatProp(VA_Translucency_Write_Only_Alpha, staticMesh, bWriteOnlyAlpha);
-								SetColorXCaseMatProp(VA_Translucency_Allow_Custom_Depth_Writes, staticMesh, AllowTranslucentCustomDepthWrites);
-								SetColorXCaseMatProp(VA_Mobile_Use_Full_Precision, staticMesh, bUseFullPrecision);
-								SetColorXCaseMatProp(VA_Mobile_Use_Lightmap_Directionality, staticMesh, bUseLightmapDirectionality);
-								SetColorXCaseMatProp(VA_Forward_Shading_High_Quality_Reflections, staticMesh, bUseHQForwardReflections);
-								SetColorXCaseMatProp(VA_Forward_Shading_Planar_Reflections, staticMesh, bUsePlanarForwardReflections);
+								SMSetColorXCaseMatProp(VA_Material_Two_Sided, TwoSided);
+								SMSetColorXCaseMatProp(VA_Material_Cast_Ray_Traced_Shadows, bCastRayTracedShadows);
+								SMSetColorXCaseMatProp(VA_Translucency_Screen_Space_Reflections, bScreenSpaceReflections);
+								SMSetColorXCaseMatProp(VA_Translucency_Contact_Shadows , bContactShadows);
+								SMSetColorXCaseMatProp(VA_Translucency_Directional_Lighting_Intensity, TranslucencyDirectionalLightingIntensity);
+								SMSetColorXCaseMatProp(VA_Translucency_Apply_Fogging, bUseTranslucencyVertexFog);
+								SMSetColorXCaseMatProp(VA_Translucency_Compute_Fog_Per_Pixel, bComputeFogPerPixel);
+								SMSetColorXCaseMatProp(VA_Translucency_Output_Velocity, bOutputTranslucentVelocity);
+								SMSetColorXCaseMatProp(VA_Translucency_Render_After_DOF, bEnableSeparateTranslucency);
+								SMSetColorXCaseMatProp(VA_Translucency_Responsive_AA, bEnableResponsiveAA);
+								SMSetColorXCaseMatProp(VA_Translucency_Mobile_Separate_Translucency, bEnableMobileSeparateTranslucency);
+								SMSetColorXCaseMatProp(VA_Translucency_Disable_Depth_Test, bDisableDepthTest);
+								SMSetColorXCaseMatProp(VA_Translucency_Write_Only_Alpha, bWriteOnlyAlpha);
+								SMSetColorXCaseMatProp(VA_Translucency_Allow_Custom_Depth_Writes, AllowTranslucentCustomDepthWrites);
+								SMSetColorXCaseMatProp(VA_Mobile_Use_Full_Precision, bUseFullPrecision);
+								SMSetColorXCaseMatProp(VA_Mobile_Use_Lightmap_Directionality, bUseLightmapDirectionality);
+								SMSetColorXCaseMatProp(VA_Forward_Shading_High_Quality_Reflections, bUseHQForwardReflections);
+								SMSetColorXCaseMatProp(VA_Forward_Shading_Planar_Reflections, bUsePlanarForwardReflections);
 							default:
 								break;
 							}
@@ -421,9 +429,17 @@ void AppEntry::Update(const StepTimer& timer)
 						// Calculate the specific property for SkeletalMesh.
 						switch (m_appGui->GetAppData()->_EVisualizationAttribute)
 						{
-							SetColorX(skeletalMesh, NumVertices);
-							SetColorX(skeletalMesh, NumTriangles);
-							SetColorX(skeletalMesh, NumLODs);
+
+#define SKSetColorX(x) SetColorX(skeletalMesh, x)
+#define SKSetColorXCaseMatProp(x, y) SetColorXCaseMatProp(x, skeletalMesh, y)
+#define SKSetColorXCaseMatPropString(x, y) SetColorXCaseMatPropString(x, skeletalMesh, y)
+#define SKSetColorXCaseMatPropStringGetBetween(x, y, b1, b2) SetColorXCaseMatPropStringGetBetween(x, skeletalMesh, y, b1, b2)
+
+						case VA_NumActors: colorX = 1.0f; break;
+
+							SKSetColorX(NumVertices);
+							SKSetColorX(NumTriangles);
+							SKSetColorX(NumLODs);
 						case VA_NumMaterials:
 							colorX = (float)(skeletalMesh.UsedMaterialsIndices.size() + skeletalMesh.UsedMaterialIntancesIndices.size());
 							break;
@@ -435,41 +451,41 @@ void AppEntry::Update(const StepTimer& timer)
 								colorX += fSceneDataSet.TexturesTable[texID.second].CurrentKB;
 							break;
 
-							SetColorXCaseMatProp(VA_UniformBufferSize, skeletalMesh, UniformBufferSize);
-							SetColorXCaseMatProp(VA_NumUniformBufferMembers, skeletalMesh, NumUniformBufferMembers);
-							SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_Instructions, skeletalMesh, BPSCount);
-							SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Surface_Lightmap, skeletalMesh, BPSSurfaceLightmap);
-							SetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap, skeletalMesh, BPSVolumetricLightmap);
-							SetColorXCaseMatProp(VA_Stats_Base_Pass_Vertex_Shader, skeletalMesh, BPSVertex);
+							SKSetColorXCaseMatProp(VA_UniformBufferSize, UniformBufferSize);
+							SKSetColorXCaseMatProp(VA_NumUniformBufferMembers, NumUniformBufferMembers);
+							SKSetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_Instructions, BPSCount);
+							SKSetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Surface_Lightmap, BPSSurfaceLightmap);
+							SKSetColorXCaseMatProp(VA_Stats_Base_Pass_Shader_With_Volumetric_Lightmap, BPSVolumetricLightmap);
+							SKSetColorXCaseMatProp(VA_Stats_Base_Pass_Vertex_Shader, BPSVertex);
 
-							SetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Samplers, skeletalMesh, TexSamplers, L"_", L"/16");
-							SetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Scalars, skeletalMesh, UserInterpolators, L"", L"/");
-							SetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Vectors, skeletalMesh, UserInterpolators, L"(", L"/4 Vectors");
-							SetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_TexCoords, skeletalMesh, UserInterpolators, L"TexCoords: ", L",");
-							SetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Custom, skeletalMesh, UserInterpolators, L"Custom: ", L")");
-							SetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Lookups_VS, skeletalMesh, TexLookups, L"VS(", L")");
-							SetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Lookups_PS, skeletalMesh, TexLookups, L"PS(", L")");
+							SKSetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Samplers, TexSamplers, L"_", L"/16");
+							SKSetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Scalars, UserInterpolators, L"", L"/");
+							SKSetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Vectors, UserInterpolators, L"(", L"/4 Vectors");
+							SKSetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_TexCoords, UserInterpolators, L"TexCoords: ", L",");
+							SKSetColorXCaseMatPropStringGetBetween(VA_Stats_User_Interpolators_Custom, UserInterpolators, L"Custom: ", L")");
+							SKSetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Lookups_VS, TexLookups, L"VS(", L")");
+							SKSetColorXCaseMatPropStringGetBetween(VA_Stats_Texture_Lookups_PS, TexLookups, L"PS(", L")");
 
-							SetColorXCaseMatPropString(VA_Stats_Virtual_Texture_Lookups, skeletalMesh, VTLookups);
+							SKSetColorXCaseMatPropString(VA_Stats_Virtual_Texture_Lookups, VTLookups);
 
-							SetColorXCaseMatProp(VA_Material_Two_Sided, skeletalMesh, TwoSided);
-							SetColorXCaseMatProp(VA_Material_Cast_Ray_Traced_Shadows, skeletalMesh, bCastRayTracedShadows);
-							SetColorXCaseMatProp(VA_Translucency_Screen_Space_Reflections, skeletalMesh, bScreenSpaceReflections);
-							SetColorXCaseMatProp(VA_Translucency_Contact_Shadows, skeletalMesh, bContactShadows);
-							SetColorXCaseMatProp(VA_Translucency_Directional_Lighting_Intensity, skeletalMesh, TranslucencyDirectionalLightingIntensity);
-							SetColorXCaseMatProp(VA_Translucency_Apply_Fogging, skeletalMesh, bUseTranslucencyVertexFog);
-							SetColorXCaseMatProp(VA_Translucency_Compute_Fog_Per_Pixel, skeletalMesh, bComputeFogPerPixel);
-							SetColorXCaseMatProp(VA_Translucency_Output_Velocity, skeletalMesh, bOutputTranslucentVelocity);
-							SetColorXCaseMatProp(VA_Translucency_Render_After_DOF, skeletalMesh, bEnableSeparateTranslucency);
-							SetColorXCaseMatProp(VA_Translucency_Responsive_AA, skeletalMesh, bEnableResponsiveAA);
-							SetColorXCaseMatProp(VA_Translucency_Mobile_Separate_Translucency, skeletalMesh, bEnableMobileSeparateTranslucency);
-							SetColorXCaseMatProp(VA_Translucency_Disable_Depth_Test, skeletalMesh, bDisableDepthTest);
-							SetColorXCaseMatProp(VA_Translucency_Write_Only_Alpha, skeletalMesh, bWriteOnlyAlpha);
-							SetColorXCaseMatProp(VA_Translucency_Allow_Custom_Depth_Writes, skeletalMesh, AllowTranslucentCustomDepthWrites);
-							SetColorXCaseMatProp(VA_Mobile_Use_Full_Precision, skeletalMesh, bUseFullPrecision);
-							SetColorXCaseMatProp(VA_Mobile_Use_Lightmap_Directionality, skeletalMesh, bUseLightmapDirectionality);
-							SetColorXCaseMatProp(VA_Forward_Shading_High_Quality_Reflections, skeletalMesh, bUseHQForwardReflections);
-							SetColorXCaseMatProp(VA_Forward_Shading_Planar_Reflections, skeletalMesh, bUsePlanarForwardReflections);
+							SKSetColorXCaseMatProp(VA_Material_Two_Sided, TwoSided);
+							SKSetColorXCaseMatProp(VA_Material_Cast_Ray_Traced_Shadows, bCastRayTracedShadows);
+							SKSetColorXCaseMatProp(VA_Translucency_Screen_Space_Reflections, bScreenSpaceReflections);
+							SKSetColorXCaseMatProp(VA_Translucency_Contact_Shadows, bContactShadows);
+							SKSetColorXCaseMatProp(VA_Translucency_Directional_Lighting_Intensity, TranslucencyDirectionalLightingIntensity);
+							SKSetColorXCaseMatProp(VA_Translucency_Apply_Fogging, bUseTranslucencyVertexFog);
+							SKSetColorXCaseMatProp(VA_Translucency_Compute_Fog_Per_Pixel, bComputeFogPerPixel);
+							SKSetColorXCaseMatProp(VA_Translucency_Output_Velocity, bOutputTranslucentVelocity);
+							SKSetColorXCaseMatProp(VA_Translucency_Render_After_DOF, bEnableSeparateTranslucency);
+							SKSetColorXCaseMatProp(VA_Translucency_Responsive_AA, bEnableResponsiveAA);
+							SKSetColorXCaseMatProp(VA_Translucency_Mobile_Separate_Translucency, bEnableMobileSeparateTranslucency);
+							SKSetColorXCaseMatProp(VA_Translucency_Disable_Depth_Test, bDisableDepthTest);
+							SKSetColorXCaseMatProp(VA_Translucency_Write_Only_Alpha, bWriteOnlyAlpha);
+							SKSetColorXCaseMatProp(VA_Translucency_Allow_Custom_Depth_Writes, AllowTranslucentCustomDepthWrites);
+							SKSetColorXCaseMatProp(VA_Mobile_Use_Full_Precision, bUseFullPrecision);
+							SKSetColorXCaseMatProp(VA_Mobile_Use_Lightmap_Directionality, bUseLightmapDirectionality);
+							SKSetColorXCaseMatProp(VA_Forward_Shading_High_Quality_Reflections, bUseHQForwardReflections);
+							SKSetColorXCaseMatProp(VA_Forward_Shading_Planar_Reflections, bUsePlanarForwardReflections);
 						default:
 							break;
 						}

@@ -232,7 +232,7 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="FinalEngine.ico" />
+    <Image Include="JayouEngine.ico" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="settings.manifest" />

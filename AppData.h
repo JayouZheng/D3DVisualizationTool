@@ -22,6 +22,9 @@ namespace DX
 
 	enum EVisualizationAttribute
 	{
+		// NumActors.
+		VA_NumActors,
+
 		// Mesh.
 		VA_NumVertices,
 		VA_NumTriangles,
@@ -84,7 +87,7 @@ namespace DX
 		
 		ECameraViewType _ECameraViewType = CV_FocusPointView;
 		ECameraProjType _ECameraProjType = CP_PerspectiveProj;			
-		EVisualizationAttribute _EVisualizationAttribute = VA_NumVertices;		
+		EVisualizationAttribute _EVisualizationAttribute = VA_NumActors;		
 		EVisualizationColorMode _EVisualizationColorMode = VCM_ColorWhite;
 		
 		float GridWidth = 60.0f;

@@ -218,6 +218,7 @@ void AppGUI::DrawGUI()
 
 				if (ImGui::TreeNode("VisualizationAttribute"))
 				{
+					GUI_SetAttribute(VA_NumActors);
 					GUI_SetAttribute(VA_NumVertices);
 					GUI_SetAttribute(VA_NumTriangles);
 					GUI_SetAttribute(VA_NumInstances);

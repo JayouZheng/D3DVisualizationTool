@@ -197,11 +197,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="FinalEngine.ico">
-      <Filter>Assets</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
     <Text Include="Shaders\common.hlsl">
       <Filter>Shaders</Filter>
     </Text>
@@ -211,5 +206,10 @@
     <Text Include="Shaders\fullscreenquad.hlsl">
       <Filter>Shaders</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="JayouEngine.ico">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>
